@@ -91,6 +91,8 @@
             border-radius: 4px;
             border: 1px solid #ecf0f1;
         }
+        .zona-mazos { display: flex; gap: 20px; justify-content: center; margin-top: 10px; }
+        #indicador-turno { color: #f1c40f; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -119,8 +121,13 @@
             <div id="zona-oponentes">Esperando oponentes...</div>
 
             <div class="centro-mesa">
-                <p>Centro</p>
-                <div id="carta-centro" class="carta-juego"></div>
+                <div id="indicador-turno">Turno de: ...</div>
+                <div class="zona-mazos">
+                    <div id="mazo-robar" class="carta-juego carta-oculta" style="cursor: pointer;">
+                        MAZO
+                    </div>
+                    <div id="carta-centro" class="carta-juego"></div>
+                </div>
             </div>
 
             <div class="zona-jugador">

@@ -17,6 +17,15 @@
         .jugador-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; }
         .estado-listo { color: #2ecc71; font-weight: bold; }
         .estado-espera { color: #e74c3c; }
+        /* Diseño de la Mesa y las Cartas */
+        .mesa-redonda { width: 100%; max-width: 800px; margin: 20px auto; padding: 40px; background-color: #2c3e50; border-radius: 50%; border: 8px solid #34495e; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        .centro-mesa { margin: 20px 0; }
+        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .grilla-cartas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .carta-juego { width: 60px; height: 90px; background-color: #ecf0f1; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #000; font-weight: bold; font-size: 14px; border: 2px solid #bdc3c7; user-select: none; }
+        .carta-oculta { background: repeating-linear-gradient(45deg, #e74c3c, #e74c3c 10px, #c0392b 10px, #c0392b 20px); color: transparent; }
+        .carta-roja { color: #e74c3c; }
+        .carta-negra { color: #2c3e50; }
     </style>
 </head>
 <body>
@@ -40,8 +49,22 @@
     </div>
 
     <div id="pantalla-juego" class="pantalla">
-        <h1>Mesa Redonda (En construcción...)</h1>
-        <p>¡El juego ha comenzado!</p>
+        <div class="mesa-redonda">
+            
+            <div id="zona-oponentes">Esperando oponentes...</div>
+
+            <div class="centro-mesa">
+                <p>Centro</p>
+                <div id="carta-centro" class="carta-juego"></div>
+            </div>
+
+            <div class="zona-jugador">
+                <h3>Tus Cartas</h3>
+                <div class="grilla-cartas" id="mis-cartas-html">
+                    </div>
+            </div>
+
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -86,10 +109,32 @@
             });
         });
 
-        // Escuchar inicio de juego
-        socket.on('iniciar_juego', () => {
+        // Escuchar inicio de juego y recibir la carta del centro
+        socket.on('iniciar_juego', (datos) => {
             document.getElementById('pantalla-lobby').classList.remove('activa');
             document.getElementById('pantalla-juego').classList.add('activa');
+            
+            // Mostrar la carta del centro
+            const divCentro = document.getElementById('carta-centro');
+            const colorClase = datos.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
+            divCentro.innerHTML = `${datos.cartaCentro.valor}<br>${datos.cartaCentro.palo.substring(0,3)}`;
+            divCentro.className = `carta-juego ${colorClase}`;
+        });
+
+        // Recibir MIS 4 cartas en privado
+        socket.on('mis_cartas', (cartas) => {
+            const miGrilla = document.getElementById('mis-cartas-html');
+            miGrilla.innerHTML = ''; // Limpiamos
+
+            cartas.forEach((carta, index) => {
+                const colorClase = carta.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
+                // Por defecto las cartas nacen "ocultas" (boca abajo) según tus reglas
+                miGrilla.innerHTML += `
+                    <div class="carta-juego carta-oculta" id="mi-carta-${index}" data-valor="${carta.valor}" data-palo="${carta.palo}">
+                        ?
+                    </div>
+                `;
+            });
         });
     </script>
 </body>

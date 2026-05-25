@@ -114,8 +114,29 @@ io.on('connection', (socket) => {
             const todosListos = sala.jugadores.every(j => j.listo);
             if (todosListos && sala.jugadores.length >= 2) {
                 sala.estado = 'Jugando';
-                io.to(codigoSala).emit('iniciar_juego');
-                // Aquí en el futuro llamaremos a la función de repartir cartas
+                
+                // Repartir 4 cartas a cada jugador
+                sala.jugadores.forEach(jugador => {
+                    jugador.cartas = [
+                        sala.mazo.robarCarta(), sala.mazo.robarCarta(),
+                        sala.mazo.robarCarta(), sala.mazo.robarCarta()
+                    ];
+                });
+
+                // Sacar la primera carta al centro
+                sala.cartaCentro = sala.mazo.robarCarta();
+                sala.turnoActual = 0; // Índice del jugador que empieza
+
+                // Avisamos a todos que empieza el juego y mostramos la carta del centro
+                io.to(codigoSala).emit('iniciar_juego', {
+                    jugadores: sala.jugadores.map(j => ({ id: j.id, nombre: j.nombre })), // Enviamos info básica
+                    cartaCentro: sala.cartaCentro
+                });
+
+                // Enviamos a cada jugador SUS cartas de forma privada
+                sala.jugadores.forEach(jugador => {
+                    io.to(jugador.id).emit('mis_cartas', jugador.cartas);
+                });
             }
         }
     });

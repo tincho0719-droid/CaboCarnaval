@@ -26,6 +26,30 @@
         .carta-oculta { background: repeating-linear-gradient(45deg, #e74c3c, #e74c3c 10px, #c0392b 10px, #c0392b 20px); color: transparent; }
         .carta-roja { color: #e74c3c; }
         .carta-negra { color: #2c3e50; }
+        /* --- ADAPTACIÓN PARA CELULARES (Responsive) --- */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            
+            .mesa-redonda {
+                width: 95%;
+                border-radius: 25px; /* Dejamos de forzar el círculo para ganar espacio */
+                padding: 15px;
+                min-height: auto;
+                border-width: 4px;
+            }
+            
+            .carta-juego {
+                width: 50px; /* Cartas ligeramente más pequeñas */
+                height: 75px;
+                font-size: 12px;
+            }
+            
+            .grilla-cartas {
+                gap: 5px; /* Menos espacio entre cartas */
+            }
+
+            input { width: 90%; }
+        }
     </style>
 </head>
 <body>
@@ -62,6 +86,7 @@
                 <h3>Tus Cartas</h3>
                 <div class="grilla-cartas" id="mis-cartas-html">
                     </div>
+                <button id="btn-ver-cartas" style="display: none;">Ver mis cartas inferiores (3s)</button>
             </div>
 
         </div>
@@ -126,15 +151,57 @@
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = ''; // Limpiamos
 
+            // Guardamos los datos de la carta ocultos usando 'data-' atributos
             cartas.forEach((carta, index) => {
-                const colorClase = carta.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
-                // Por defecto las cartas nacen "ocultas" (boca abajo) según tus reglas
                 miGrilla.innerHTML += `
-                    <div class="carta-juego carta-oculta" id="mi-carta-${index}" data-valor="${carta.valor}" data-palo="${carta.palo}">
+                    <div class="carta-juego carta-oculta" id="mi-carta-${index}" 
+                         data-valor="${carta.valor}" 
+                         data-palo="${carta.palo}" 
+                         data-color="${carta.color}">
                         ?
                     </div>
                 `;
             });
+
+            // Mostramos el botón para iniciar la memorización
+            document.getElementById('btn-ver-cartas').style.display = 'block';
+        });
+
+        // LÓGICA DEL BOTÓN DE 3 SEGUNDOS
+        const btnVerCartas = document.getElementById('btn-ver-cartas');
+        btnVerCartas.addEventListener('click', () => {
+            // 1. Ocultamos el botón para que no lo presionen dos veces
+            btnVerCartas.style.display = 'none';
+            
+            // 2. Identificamos las dos cartas de abajo (índices 2 y 3 de la grilla)
+            const cartaIzq = document.getElementById('mi-carta-2');
+            const cartaDer = document.getElementById('mi-carta-3');
+
+            // Función para dar vuelta una carta
+            const revelar = (divCarta) => {
+                divCarta.classList.remove('carta-oculta');
+                const colorClase = divCarta.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
+                divCarta.classList.add(colorClase);
+                divCarta.innerHTML = `${divCarta.dataset.valor}<br>${divCarta.dataset.palo.substring(0,3)}`;
+            };
+
+            // Función para volver a tapar
+            const tapar = (divCarta) => {
+                divCarta.classList.add('carta-oculta');
+                divCarta.classList.remove('carta-roja', 'carta-negra');
+                divCarta.innerHTML = '?';
+            };
+
+            // 3. Revelamos las cartas inferiores
+            revelar(cartaIzq);
+            revelar(cartaDer);
+
+            // 4. Temporizador estricto de 3000 milisegundos (3 segundos)
+            setTimeout(() => {
+                tapar(cartaIzq);
+                tapar(cartaDer);
+                // Acá el jugador ya está listo para jugar
+            }, 3000);
         });
     </script>
 </body>

@@ -53,14 +53,12 @@ class Mazo {
         ];
         const valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-        // Generamos 2 mazos completos
         for (let i = 0; i < 2; i++) {
             for (let palo of palos) {
                 for (let valor of valores) {
                     this.cartas.push(new Carta(palo.nombre, valor, palo.color));
                 }
             }
-            // 2 Jokers por mazo
             this.cartas.push(new Carta('Ninguno', 'Joker', 'Color'));
             this.cartas.push(new Carta('Ninguno', 'Joker', 'Blanco y Negro'));
         }
@@ -72,6 +70,13 @@ class Mazo {
             [this.cartas[i], this.cartas[j]] = [this.cartas[j], this.cartas[i]];
         }
     }
+
+    // --- AGREGA ESTA FUNCIÓN AQUÍ ---
+    robarCarta() {
+        if (this.cartas.length === 0) return null;
+        return this.cartas.pop();
+    }
+    // --------------------------------
 }
 
 // --- ESTADO DEL JUEGO Y SALAS ---

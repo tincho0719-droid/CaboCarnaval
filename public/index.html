@@ -213,6 +213,15 @@
                     </div>
                 `;
             });
+            // 3. Actualizar indicador de turno visual
+            const indicadorTurno = document.getElementById('indicador-turno');
+            if (datos.turnoActualId === socket.id) {
+                indicadorTurno.innerText = "¡ES TU TURNO!";
+                indicadorTurno.style.color = "#2ecc71"; // Verde
+            } else {
+                indicadorTurno.innerText = `Turno de: ${datos.turnoActualNombre}`;
+                indicadorTurno.style.color = "#f1c40f"; // Amarillo
+            }
         });
 
         // Recibir MIS 4 cartas en privado
@@ -271,7 +280,26 @@
                 tapar(cartaDer);
                 // Acá el jugador ya está listo para jugar
             }, 3000);
-        });  
+        }); 
+        // --- LÓGICA DE TURNOS E INTERACCIÓN ---
+
+        // 1. Al hacer clic en el mazo central
+        const mazoRobar = document.getElementById('mazo-robar');
+        mazoRobar.addEventListener('click', () => {
+            socket.emit('robar_carta_turno', miSala);
+        });
+
+        // 2. El servidor nos da la carta (solo si es nuestro turno)
+        socket.on('recibir_carta_robada', (carta) => {
+            // Por ahora, usamos un alert simple para verificar que funciona
+            // En el próximo paso crearemos los botones de "Descartar" o "Cambiar"
+            alert(`¡Es tu turno!\nLevantaste la carta: ${carta.valor} de ${carta.palo}`);
+        });
+
+        // 3. Mostrar mensajes generales en la consola para depurar
+        socket.on('mensaje_juego', (mensaje) => {
+            console.log("Sistema:", mensaje);
+        }); 
     </script>
 </body>
 </html>

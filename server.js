@@ -132,10 +132,12 @@ io.on('connection', (socket) => {
                 sala.cartaCentro = sala.mazo.robarCarta();
                 sala.turnoActual = 0; // Índice del jugador que empieza
 
-                // Avisamos a todos que empieza el juego y mostramos la carta del centro
+                // Avisamos a todos que empieza el juego y de quién es el primer turno
                 io.to(codigoSala).emit('iniciar_juego', {
-                    jugadores: sala.jugadores.map(j => ({ id: j.id, nombre: j.nombre })), // Enviamos info básica
-                    cartaCentro: sala.cartaCentro
+                    jugadores: sala.jugadores.map(j => ({ id: j.id, nombre: j.nombre })),
+                    cartaCentro: sala.cartaCentro,
+                    turnoActualId: sala.jugadores[sala.turnoActual].id,
+                    turnoActualNombre: sala.jugadores[sala.turnoActual].nombre
                 });
 
                 // Enviamos a cada jugador SUS cartas de forma privada
@@ -145,7 +147,28 @@ io.on('connection', (socket) => {
             }
         }
     });
-
+// Lógica de turnos: levantar carta del mazo
+    socket.on('robar_carta_turno', (codigoSala) => {
+        const sala = salas[codigoSala];
+        if (sala && sala.estado === 'Jugando') {
+            const jugadorEnTurno = sala.jugadores[sala.turnoActual];
+            
+            // Validamos de forma segura que el que hizo clic sea el dueño del turno
+            if (socket.id === jugadorEnTurno.id) {
+                const cartaRobada = sala.mazo.robarCarta();
+                
+                if (cartaRobada) {
+                    // Le enviamos la carta en privado SOLO a ese jugador
+                    socket.emit('recibir_carta_robada', cartaRobada);
+                    
+                    // Avisamos a todos los demás que este jugador levantó una carta
+                    io.to(codigoSala).emit('mensaje_juego', `${jugadorEnTurno.nombre} levantó una carta del mazo.`);
+                    
+                    // NOTA: El turno no avanza todavía. El jugador debe elegir qué hacer.
+                }
+            }
+        }
+    });
     socket.on('disconnect', () => {
         // Buscar en qué sala estaba el jugador y sacarlo (lógica simplificada)
         for (const codigoSala in salas) {

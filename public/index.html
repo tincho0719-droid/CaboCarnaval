@@ -135,7 +135,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+      const socket = io();
         let miSala = '';
 
         // Elementos UI
@@ -175,7 +175,7 @@
             });
         });
 
-        // Escuchar inicio de juego y recibir la carta del centro
+        // Escuchar inicio de juego, procesar oponentes y carta central
         socket.on('iniciar_juego', (datos) => {
             document.getElementById('pantalla-lobby').classList.remove('activa');
             document.getElementById('pantalla-juego').classList.add('activa');
@@ -206,7 +206,6 @@
                     </div>
                 `;
             });
-        });
         });
 
         // Recibir MIS 4 cartas en privado
@@ -265,7 +264,7 @@
                 tapar(cartaDer);
                 // Acá el jugador ya está listo para jugar
             }, 3000);
-        });
+        });  
     </script>
 </body>
 </html>

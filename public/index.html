@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabo - Juego de Cartas</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; color: #f0f0f0; text-align: center; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        .pantalla { display: none; width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; }
+        .activa { display: block; }
+        h1 { color: #f39c12; letter-spacing: 2px; }
+        input { padding: 12px; font-size: 16px; margin: 10px 0; width: 80%; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; text-align: center; }
+        button { padding: 12px 24px; font-size: 18px; margin: 10px; cursor: pointer; background-color: #f39c12; color: #1a1a1a; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        button:hover { background-color: #d68910; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        .lista-jugadores { background: #2a2a2a; border-radius: 10px; padding: 15px; margin: 20px 0; text-align: left; }
+        .jugador-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; }
+        .estado-listo { color: #2ecc71; font-weight: bold; }
+        .estado-espera { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-login" class="pantalla activa">
+        <h1>CABO</h1>
+        <p>Ingresa tu nombre y el código de la partida</p>
+        <input type="text" id="input-nombre" placeholder="Tu Nombre (Ej: Martín)">
+        <input type="text" id="input-sala" placeholder="Código de la Sala (Ej: mesa1)">
+        <button id="btn-entrar">Unirse a la Sala</button>
+    </div>
+
+    <div id="pantalla-lobby" class="pantalla">
+        <h2>Sala: <span id="nombre-sala"></span></h2>
+        <p>Esperando a los jugadores...</p>
+        
+        <div class="lista-jugadores" id="lista-jugadores">
+            </div>
+
+        <button id="btn-listo">¡Estoy Listo!</button>
+    </div>
+
+    <div id="pantalla-juego" class="pantalla">
+        <h1>Mesa Redonda (En construcción...)</h1>
+        <p>¡El juego ha comenzado!</p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let miSala = '';
+
+        // Elementos UI
+        const btnEntrar = document.getElementById('btn-entrar');
+        const btnListo = document.getElementById('btn-listo');
+        const inputNombre = document.getElementById('input-nombre');
+        const inputSala = document.getElementById('input-sala');
+        const divListaJugadores = document.getElementById('lista-jugadores');
+
+        // Unirse al Lobby
+        btnEntrar.addEventListener('click', () => {
+            const nombre = inputNombre.value.trim();
+            miSala = inputSala.value.trim();
+
+            if (nombre && miSala) {
+                socket.emit('unirse_lobby', { codigoSala: miSala, nombreJugador: nombre });
+                
+                document.getElementById('pantalla-login').classList.remove('activa');
+                document.getElementById('pantalla-lobby').classList.add('activa');
+                document.getElementById('nombre-sala').innerText = miSala;
+            }
+        });
+
+        // Marcar Listo
+        btnListo.addEventListener('click', () => {
+            socket.emit('jugador_listo', miSala);
+            btnListo.disabled = true;
+            btnListo.innerText = "Esperando al resto...";
+        });
+
+        // Escuchar actualización del lobby
+        socket.on('actualizar_lobby', (jugadores) => {
+            divListaJugadores.innerHTML = '';
+            jugadores.forEach(j => {
+                const estadoDiv = j.listo ? '<span class="estado-listo">Listo</span>' : '<span class="estado-espera">Esperando...</span>';
+                divListaJugadores.innerHTML += `<div class="jugador-item"><span>${j.nombre}</span> ${estadoDiv}</div>`;
+            });
+        });
+
+        // Escuchar inicio de juego
+        socket.on('iniciar_juego', () => {
+            document.getElementById('pantalla-lobby').classList.remove('activa');
+            document.getElementById('pantalla-juego').classList.add('activa');
+        });
+    </script>
+</body>
+</html>

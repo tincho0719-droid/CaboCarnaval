@@ -50,6 +50,47 @@
 
             input { width: 90%; }
         }
+        /* Contenedor para alinear a todos los rivales arriba */
+        #zona-oponentes {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        /* Bloque individual de cada oponente */
+        .oponente-bloque {
+            background-color: #34495e;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #bdc3c7;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .oponente-nombre {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #f39c12;
+        }
+
+        /* Grilla pequeña para representar las 4 cartas tapadas del rival */
+        .grilla-cartas-oponente {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            justify-items: center;
+        }
+
+        .carta-oponente-oculta {
+            width: 30px;
+            height: 45px;
+            background: repeating-linear-gradient(45deg, #3498db, #3498db 5px, #2980b9 5px, #2980b9 10px);
+            border-radius: 4px;
+            border: 1px solid #ecf0f1;
+        }
     </style>
 </head>
 <body>
@@ -139,11 +180,33 @@
             document.getElementById('pantalla-lobby').classList.remove('activa');
             document.getElementById('pantalla-juego').classList.add('activa');
             
-            // Mostrar la carta del centro
+            // 1. Mostrar la carta del centro
             const divCentro = document.getElementById('carta-centro');
             const colorClase = datos.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
             divCentro.innerHTML = `${datos.cartaCentro.valor}<br>${datos.cartaCentro.palo.substring(0,3)}`;
             divCentro.className = `carta-juego ${colorClase}`;
+
+            // 2. Dibujar dinámicamente a los oponentes
+            const divOponentes = document.getElementById('zona-oponentes');
+            divOponentes.innerHTML = ''; // Limpiamos el texto "Esperando oponentes..."
+
+            // Filtramos la lista para quedarnos solo con los DEMÁS jugadores
+            const oponentes = datos.jugadores.filter(j => j.id !== socket.id);
+
+            oponentes.forEach(op => {
+                divOponentes.innerHTML += `
+                    <div class="oponente-bloque" id="oponente-${op.id}">
+                        <div class="oponente-nombre">${op.nombre}</div>
+                        <div class="grilla-cartas-oponente">
+                            <div class="carta-oponente-oculta"></div>
+                            <div class="carta-oponente-oculta"></div>
+                            <div class="carta-oponente-oculta"></div>
+                            <div class="carta-oponente-oculta"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        });
         });
 
         // Recibir MIS 4 cartas en privado

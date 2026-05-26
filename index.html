@@ -3,303 +3,460 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cabo - Juego de Cartas</title>
+    <title>Cabo P2P - Edición Minimalista</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; color: #f0f0f0; text-align: center; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-        .pantalla { display: none; width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; }
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --accent-color: #f39c12;
+            --text-color: #e0e0e0;
+            --rojo-carta: #e74c3c;
+            --negro-carta: #ffffff;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            text-align: center; 
+            margin: 0; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            box-sizing: border-box;
+        }
+
+        .pantalla { display: none; width: 100%; max-width: 500px; padding: 10px; box-sizing: border-box; }
         .activa { display: block; }
-        h1 { color: #f39c12; letter-spacing: 2px; }
-        input { padding: 12px; font-size: 16px; margin: 10px 0; width: 80%; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; text-align: center; }
-        button { padding: 12px 24px; font-size: 18px; margin: 10px; cursor: pointer; background-color: #f39c12; color: #1a1a1a; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+
+        h1 { color: var(--accent-color); letter-spacing: 3px; margin-bottom: 5px; font-size: 28px; }
+        .sub { color: #888; font-size: 14px; margin-bottom: 25px; }
+
+        input { padding: 14px; font-size: 16px; margin: 8px 0; width: 100%; border-radius: 8px; border: 1px solid #333; background: var(--surface-color); color: white; text-align: center; box-sizing: border-box; }
+        button { padding: 14px 24px; font-size: 16px; margin: 10px 0; width: 100%; cursor: pointer; background-color: var(--accent-color); color: #000; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
         button:hover { background-color: #d68910; }
-        button:disabled { background-color: #555; cursor: not-allowed; }
-        .lista-jugadores { background: #2a2a2a; border-radius: 10px; padding: 15px; margin: 20px 0; text-align: left; }
-        .jugador-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; }
+        button:disabled { background-color: #444; color: #888; cursor: not-allowed; }
+
+        .btn-secundario { background-color: #333; color: white; border: 1px solid #444; }
+        .btn-secundario:hover { background-color: #444; }
+
+        /* Lobby */
+        .codigo-alerta { font-size: 24px; color: var(--accent-color); font-weight: bold; background: var(--surface-color); padding: 10px; border-radius: 8px; border: 1px dashed var(--accent-color); margin: 15px 0; }
+        .lista-jugadores { background: var(--surface-color); border-radius: 10px; padding: 5px 15px; margin: 15px 0; text-align: left; }
+        .jugador-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
+        .jugador-item:last-child { border: none; }
         .estado-listo { color: #2ecc71; font-weight: bold; }
         .estado-espera { color: #e74c3c; }
-        /* Diseño de la Mesa y las Cartas */
-        .mesa-redonda { width: 100%; max-width: 800px; margin: 20px auto; padding: 40px; background-color: #2c3e50; border-radius: 50%; border: 8px solid #34495e; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
-        .centro-mesa { margin: 20px 0; }
-        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .grilla-cartas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .carta-juego { width: 60px; height: 90px; background-color: #ecf0f1; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #000; font-weight: bold; font-size: 14px; border: 2px solid #bdc3c7; user-select: none; }
-        .carta-oculta { background: repeating-linear-gradient(45deg, #e74c3c, #e74c3c 10px, #c0392b 10px, #c0392b 20px); color: transparent; }
-        .carta-roja { color: #e74c3c; }
-        .carta-negra { color: #2c3e50; }
-        /* --- ADAPTACIÓN PARA CELULARES (Responsive) --- */
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            
-            .mesa-redonda {
-                width: 95%;
-                border-radius: 25px; /* Dejamos de forzar el círculo para ganar espacio */
-                padding: 15px;
-                min-height: auto;
-                border-width: 4px;
-            }
-            
-            .carta-juego {
-                width: 50px; /* Cartas ligeramente más pequeñas */
-                height: 75px;
-                font-size: 12px;
-            }
-            
-            .grilla-cartas {
-                gap: 5px; /* Menos espacio entre cartas */
-            }
 
-            input { width: 90%; }
-        }
-        /* Contenedor para alinear a todos los rivales arriba */
-        #zona-oponentes {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            width: 100%;
-            flex-wrap: wrap;
-        }
+        /* Mesa de Juego Adaptada a Celulares */
+        .mesa-tablero { width: 100%; max-width: 600px; background-color: var(--surface-color); border-radius: 20px; border: 2px solid #2a2a2a; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; }
+        #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; }
+        
+        #zona-oponentes { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; width: 100%; }
+        .oponente-bloque { background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; text-align: center; min-width: 70px; }
+        .oponente-nombre { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
+        .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+        .minicarta { width: 20px; height: 30px; background: #2980b9; border-radius: 3px; }
 
-        /* Bloque individual de cada oponente */
-        .oponente-bloque {
-            background-color: #34495e;
-            padding: 10px;
-            border-radius: 8px;
-            border: 2px solid #bdc3c7;
-            text-align: center;
-            min-width: 100px;
+        .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
+        
+        /* Diseño de Cartas Ultra Minimalista */
+        .carta-juego { 
+            width: 65px; 
+            height: 95px; 
+            background-color: #ffffff; 
+            border-radius: 8px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-weight: 800; 
+            font-size: 26px; /* Número bien definido y grande */
+            user-select: none; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
         }
+        .carta-oculta { 
+            background: linear-gradient(135deg, #2c3e50 25%, #34495e 25%, #34495e 50%, #2c3e50 50%, #2c3e50 75%, #34495e 75%, #34495e 100%);
+            background-size: 20px 20px;
+            color: transparent !important;
+            border: 2px solid #fff;
+        }
+        .carta-roja { color: var(--rojo-carta); }
+        .carta-negra { color: #121212; }
 
-        .oponente-nombre {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #f39c12;
-        }
+        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .grilla-cartas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-        /* Grilla pequeña para representar las 4 cartas tapadas del rival */
-        .grilla-cartas-oponente {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
-            justify-items: center;
+        /* Responsivo Extremo para Pantallas Muy Chicas */
+        @media (max-width: 360px) {
+            .carta-juego { width: 55px; height: 80px; font-size: 22px; }
+            .mesa-tablero { padding: 10px; }
         }
-
-        .carta-oponente-oculta {
-            width: 30px;
-            height: 45px;
-            background: repeating-linear-gradient(45deg, #3498db, #3498db 5px, #2980b9 5px, #2980b9 10px);
-            border-radius: 4px;
-            border: 1px solid #ecf0f1;
-        }
-        .zona-mazos { display: flex; gap: 20px; justify-content: center; margin-top: 10px; }
-        #indicador-turno { color: #f1c40f; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div id="pantalla-login" class="pantalla activa">
+    <div id="pantalla-menu" class="pantalla activa">
         <h1>CABO</h1>
-        <p>Ingresa tu nombre y el código de la partida</p>
-        <input type="text" id="input-nombre" placeholder="Tu Nombre (Ej: Martín)">
-        <input type="text" id="input-sala" placeholder="Código de la Sala (Ej: mesa1)">
-        <button id="btn-entrar">Unirse a la Sala</button>
+        <div class="sub">Mesa Descentralizada P2P</div>
+        <input type="text" id="input-nombre" placeholder="Tu Nombre">
+        <button id="btn-crear">Crear Nueva Partida</button>
+        <input type="text" id="input-codigo" placeholder="Código de Invitación" style="text-transform: uppercase;">
+        <button id="btn-unirse" class="btn-secundario">Unirse a Partida</button>
     </div>
 
     <div id="pantalla-lobby" class="pantalla">
-        <h2>Sala: <span id="nombre-sala"></span></h2>
-        <p>Esperando a los jugadores...</p>
-        
-        <div class="lista-jugadores" id="lista-jugadores">
-            </div>
-
+        <h2>Sala de Espera</h2>
+        <p>Comparte este código con tus amigos:</p>
+        <div id="codigo-sala-display" class="codigo-alerta">---</div>
+        <div class="lista-jugadores" id="lista-jugadores"></div>
         <button id="btn-listo">¡Estoy Listo!</button>
     </div>
 
-    <div id="pantalla-juego" class="pantalla">
-        <div class="mesa-redonda">
+    <div id="pantalla-juego" class="pantalla" style="max-width: 100%;">
+        <div class="mesa-tablero">
+            <div id="indicador-turno">Conectando sincronización...</div>
             
-            <div id="zona-oponentes">Esperando oponentes...</div>
+            <div id="zona-oponentes"></div>
 
             <div class="centro-mesa">
-                <div id="indicador-turno">Turno de: ...</div>
-                <div class="zona-mazos">
-                    <div id="mazo-robar" class="carta-juego carta-oculta" style="cursor: pointer;">
-                        MAZO
-                    </div>
-                    <div id="carta-centro" class="carta-juego"></div>
-                </div>
+                <div id="mazo-robar" class="carta-juego carta-oculta" style="cursor: pointer;"></div>
+                <div id="carta-centro" class="carta-juego"></div>
             </div>
 
             <div class="zona-jugador">
-                <h3>Tus Cartas</h3>
-                <div class="grilla-cartas" id="mis-cartas-html">
-                    </div>
-                <button id="btn-ver-cartas" style="display: none;">Ver mis cartas inferiores (3s)</button>
+                <div class="grilla-cartas" id="mis-cartas-html"></div>
+                <button id="btn-ver-cartas" style="display: none; margin: 5px 0;">Ver cartas inferiores (3s)</button>
             </div>
-
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io();
-        let miSala = '';
-
-        // Elementos UI
-        const btnEntrar = document.getElementById('btn-entrar');
-        const btnListo = document.getElementById('btn-listo');
-        const inputNombre = document.getElementById('input-nombre');
-        const inputSala = document.getElementById('input-sala');
-        const divListaJugadores = document.getElementById('lista-jugadores');
-
-        // Unirse al Lobby
-        btnEntrar.addEventListener('click', () => {
-            const nombre = inputNombre.value.trim();
-            miSala = inputSala.value.trim();
-
-            if (nombre && miSala) {
-                socket.emit('unirse_lobby', { codigoSala: miSala, nombreJugador: nombre });
-                
-                document.getElementById('pantalla-login').classList.remove('activa');
-                document.getElementById('pantalla-lobby').classList.add('activa');
-                document.getElementById('nombre-sala').innerText = miSala;
+        // --- LOGICA DE CARTAS (Estructura interna liviana) ---
+        class Carta {
+            constructor(valor, color, puntos, poder) {
+                this.valor = valor;
+                this.color = color; // 'Rojo' o 'Negro'
+                this.puntos = puntos;
+                this.poder = poder;
+                this.id = Math.random().toString(36).substr(2, 5);
             }
-        });
+        }
 
-        // Marcar Listo
-        btnListo.addEventListener('click', () => {
-            socket.emit('jugador_listo', miSala);
-            btnListo.disabled = true;
-            btnListo.innerText = "Esperando al resto...";
-        });
-
-        // Escuchar actualización del lobby
-        socket.on('actualizar_lobby', (jugadores) => {
-            divListaJugadores.innerHTML = '';
-            jugadores.forEach(j => {
-                const estadoDiv = j.listo ? '<span class="estado-listo">Listo</span>' : '<span class="estado-espera">Esperando...</span>';
-                divListaJugadores.innerHTML += `<div class="jugador-item"><span>${j.nombre}</span> ${estadoDiv}</div>`;
-            });
-        });
-
-        // Escuchar inicio de juego, procesar oponentes y carta central
-        socket.on('iniciar_juego', (datos) => {
-            document.getElementById('pantalla-lobby').classList.remove('activa');
-            document.getElementById('pantalla-juego').classList.add('activa');
+        function generarMazoCabo() {
+            let mazo = [];
+            const valores = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
             
-            // 1. Mostrar la carta del centro
-            const divCentro = document.getElementById('carta-centro');
-            const colorClase = datos.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
-            divCentro.innerHTML = `${datos.cartaCentro.valor}<br>${datos.cartaCentro.palo.substring(0,3)}`;
-            divCentro.className = `carta-juego ${colorClase}`;
+            // Generamos 2 mazos franceses (sin texto de palo, solo lógica de color)
+            for (let m = 0; m < 2; m++) {
+                valores.forEach(v => {
+                    // 2 Palos Rojos (Corazones/Diamantes)
+                    for(let r=0; r<2; r++) {
+                        let pts = parseInt(v);
+                        if(v === 'A') pts = 1;
+                        if(v === 'J') pts = 1;
+                        if(v === 'Q') pts = 12;
+                        if(v === 'K') pts = -1; // Rey Rojo vale -1
+                        let pod = (v==='7'||v==='8')?'Ver propia':(v==='9'||v==='10')?'Ver ajena':(v==='J'||v==='Q')?'Cambio ciego':'Ninguno';
+                        mazo.push(new Carta(v, 'Rojo', pts, pod));
+                    }
+                    // 2 Palos Negros (Picas/Tréboles)
+                    for(let n=0; n<2; n++) {
+                        let pts = parseInt(v);
+                        if(v === 'A') pts = 1;
+                        if(v === 'J') pts = 11;
+                        if(v === 'Q') pts = 12;
+                        if(v === 'K') pts = 13; // Rey Negro vale 13
+                        let pod = (v==='7'||v==='8')?'Ver propia':(v==='9'||v==='10')?'Ver ajena':(v==='J'||v==='Q')?'Cambio ciego':(v==='K')?'Ver y cambiar':'Ninguno';
+                        mazo.push(new Carta(v, 'Negro', pts, pod));
+                    }
+                });
+                // 2 Comodines por mazo (0 puntos)
+                mazo.push(new Carta('JK', 'Rojo', 0, 'Ninguno'));
+                mazo.push(new Carta('JK', 'Negro', 0, 'Ninguno'));
+            }
+            // Mezclar
+            for (let i = mazo.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mazo[i], mazo[j]] = [mazo[j], mazo[i]];
+            }
+            return mazo;
+        }
 
-            // 2. Dibujar dinámicamente a los oponentes
-            const divOponentes = document.getElementById('zona-oponentes');
-            divOponentes.innerHTML = ''; // Limpiamos el texto "Esperando oponentes..."
+        // --- VARIABLES DE ESTADO RED P2P ---
+        let peer = null;
+        let miIdPeer = '';
+        let miNombre = '';
+        let esAnfitrion = false;
+        let codigoSalaGlobal = '';
+        
+        let conexionesAnfitrion = []; // Solo usado por el Host
+        let conexionAlAnfitrion = null; // Solo usado por los Invitados
+        
+        // Estado del juego compartido
+        let estadoJuego = {
+            jugadores: [], // { id, nombre, listo, cartas: [] }
+            mazo: [],
+            cartaCentro: null,
+            turnoActual: 0,
+            fase: 'Lobby'
+        };
 
-            // Filtramos la lista para quedarnos solo con los DEMÁS jugadores
-            const oponentes = datos.jugadores.filter(j => j.id !== socket.id);
+        // UI Elements
+        const pMenu = document.getElementById('pantalla-menu');
+        const pLobby = document.getElementById('pantalla-lobby');
+        const pJuego = document.getElementById('pantalla-juego');
 
-            oponentes.forEach(op => {
-                divOponentes.innerHTML += `
-                    <div class="oponente-bloque" id="oponente-${op.id}">
-                        <div class="oponente-nombre">${op.nombre}</div>
-                        <div class="grilla-cartas-oponente">
-                            <div class="carta-oponente-oculta"></div>
-                            <div class="carta-oponente-oculta"></div>
-                            <div class="carta-oponente-oculta"></div>
-                            <div class="carta-oponente-oculta"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            // 3. Actualizar indicador de turno visual
-            const indicadorTurno = document.getElementById('indicador-turno');
-            if (datos.turnoActualId === socket.id) {
-                indicadorTurno.innerText = "¡ES TU TURNO!";
-                indicadorTurno.style.color = "#2ecc71"; // Verde
+        // --- EVENTOS DE INTERFAZ ---
+        document.getElementById('btn-crear').addEventListener('click', () => {
+            miNombre = document.getElementById('input-nombre').value.trim();
+            if (!miNombre) return alert("Ingresa tu nombre");
+            
+            esAnfitrion = true;
+            // Generamos un código corto aleatorio de 4 letras
+            codigoSalaGlobal = Math.random().toString(36).substr(2, 4).toUpperCase();
+            document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
+            
+            cambiarPantalla(pLobby);
+            inicializarPeer(`CABO-${codigoSalaGlobal}`);
+        });
+
+        document.getElementById('btn-unirse').addEventListener('click', () => {
+            miNombre = document.getElementById('input-nombre').value.trim();
+            codigoSalaGlobal = document.getElementById('input-codigo').value.trim().toUpperCase();
+            if (!miNombre || !codigoSalaGlobal) return alert("Completa nombre y código");
+            
+            esAnfitrion = false;
+            cambiarPantalla(pLobby);
+            document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
+            inicializarPeer(); // ID automático para invitados
+        });
+
+        document.getElementById('btn-listo').addEventListener('click', () => {
+            document.getElementById('btn-listo').disabled = true;
+            document.getElementById('btn-listo').innerText = "Esperando al resto...";
+            
+            if (esAnfitrion) {
+                marcarListoLocal(miIdPeer);
             } else {
-                indicadorTurno.innerText = `Turno de: ${datos.turnoActualNombre}`;
-                indicadorTurno.style.color = "#f1c40f"; // Amarillo
+                conexionAlAnfitrion.send({ type: 'LISTO' });
             }
         });
 
-        // Recibir MIS 4 cartas en privado
-        socket.on('mis_cartas', (cartas) => {
-            const miGrilla = document.getElementById('mis-cartas-html');
-            miGrilla.innerHTML = ''; // Limpiamos
+        function cambiarPantalla(pantalla) {
+            document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+            pantalla.classList.add('activa');
+        }
 
-            // Guardamos los datos de la carta ocultos usando 'data-' atributos
-            cartas.forEach((carta, index) => {
+        // --- INICIALIZACIÓN DE RED PEERJS ---
+        function inicializarPeer(idFijo = null) {
+            peer = idFijo ? new Peer(idFijo) : new Peer();
+
+            peer.on('open', (id) => {
+                miIdPeer = id;
+                if (esAnfitrion) {
+                    // El host se agrega a sí mismo a la lista
+                    estadoJuego.jugadores.push({ id: miIdPeer, nombre: miNombre, listo: false, cartas: [] });
+                    actualizarLobbyUI();
+                } else {
+                    // El invitado intenta conectarse al código del Host
+                    conectarAlAnfitrion(`CABO-${codigoSalaGlobal}`);
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                if (esAnfitrion) {
+                    conexionesAnfitrion.push(conn);
+                    conn.on('data', (data) => procesarDataHost(data, conn));
+                }
+            });
+            
+            peer.on('error', (err) => {
+                console.error(err);
+                alert("Error de red. Asegúrate de que el código sea correcto.");
+                window.location.reload();
+            });
+        }
+
+        function conectarAlAnfitrion(idTarget) {
+            conexionAlAnfitrion = peer.connect(idTarget);
+            conexionAlAnfitrion.on('open', () => {
+                // Le mandamos nuestro nombre apenas abre el canal
+                conexionAlAnfitrion.send({ type: 'UNIRSE', nombre: miNombre });
+            });
+            conexionAlAnfitrion.on('data', (data) => procesarDataInvitado(data));
+        }
+
+        // --- PROCESAMIENTO DE DATOS (Mente del Servidor en el Host) ---
+        function procesarDataHost(data, conn) {
+            if (data.type === 'UNIRSE') {
+                estadoJuego.jugadores.push({ id: conn.peer, nombre: data.nombre, listo: false, cartas: [] });
+                enviarEstadoATodos();
+                actualizarLobbyUI();
+            }
+            if (data.type === 'LISTO') {
+                marcarListoLocal(conn.peer);
+            }
+        }
+
+        function marcarListoLocal(peerId) {
+            let jug = estadoJuego.jugadores.find(j => j.id === peerId);
+            if (jug) jug.listo = true;
+            
+            actualizarLobbyUI();
+            if (esAnfitrion) enviarEstadoATodos();
+
+            // Evaluar inicio del juego (Mínimo 2 jugadores y todos listos)
+            let todosListos = estadoJuego.jugadores.every(j => j.listo);
+            if (todosListos && estadoJuego.jugadores.length >= 2) {
+                iniciarPartidaMatematica();
+            }
+        }
+
+        function iniciarPartidaMatematica() {
+            estadoJuego.fase = 'Jugando';
+            estadoJuego.mazo = generarMazoCabo();
+            
+            // Repartir 4 cartas a cada uno
+            estadoJuego.jugadores.forEach(j => {
+                j.cartas = [estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop()];
+            });
+            
+            estadoJuego.cartaCentro = estadoJuego.mazo.pop();
+            estadoJuego.turnoActual = 0;
+
+            enviarEstadoATodos();
+            comenzarJuegoUI();
+        }
+
+        function enviarEstadoATodos() {
+            conexionesAnfitrion.forEach(conn => {
+                conn.send({ type: 'SINCRO', estado: estadoJuego });
+            });
+        }
+
+        // --- PROCESAMIENTO DE DATOS (Ojos del Cliente/Invitado) ---
+        function procesarDataInvitado(data) {
+            if (data.type === 'SINCRO') {
+                estadoJuego = data.estado;
+                if (estadoJuego.fase === 'Lobby') {
+                    actualizarLobbyUI();
+                } else if (estadoJuego.fase === 'Jugando' && pJuego.classList.contains('activa') === false) {
+                    comenzarJuegoUI();
+                } else if (estadoJuego.fase === 'Jugando') {
+                    renderizarMesaDinamica();
+                }
+            }
+        }
+
+        // --- RENDERIZADO VISUAL ACTUALIZADO (Ultra Minimalista) ---
+        function actualizarLobbyUI() {
+            const divLista = document.getElementById('lista-jugadores');
+            divLista.innerHTML = '';
+            estadoJuego.jugadores.forEach(j => {
+                const est = j.listo ? '<span class="estado-listo">Listo</span>' : '<span class="estado-espera">Pensando...</span>';
+                divLista.innerHTML += `<div class="jugador-item"><span>${j.nombre}</span> ${est}</div>`;
+            });
+        }
+
+        function comenzarJuegoUI() {
+            cambiarPantalla(pJuego);
+            renderizarMesaDinamica();
+            
+            // Activamos automáticamente el botón de la Fase 3 de memorización
+            document.getElementById('btn-ver-cartas').style.display = 'block';
+        }
+
+        function renderizarMesaDinamica() {
+            const yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            
+            // 1. Indicador de Turno
+            const ind = document.getElementById('indicador-turno');
+            if (turnoJugador.id === miIdPeer) {
+                ind.innerText = "¡ES TU TURNO!";
+                ind.style.color = "#2ecc71";
+            } else {
+                ind.innerText = `Turno de: ${turnoJugador.nombre}`;
+                ind.style.color = "#f1c40f";
+            }
+
+            // 2. Dibujar carta del centro (Solo valor y clase de color, sin tipo de palo)
+            const divCentro = document.getElementById('carta-centro');
+            divCentro.innerText = estadoJuego.cartaCentro.valor;
+            divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+
+            // 3. Dibujar oponentes en miniatura
+            const divOponentes = document.getElementById('zona-oponentes');
+            divOponentes.innerHTML = '';
+            estadoJuego.jugadores.forEach(j => {
+                if (j.id !== miIdPeer) {
+                    divOponentes.innerHTML += `
+                        <div class="oponente-bloque">
+                            <div class="oponente-nombre">${j.nombre}</div>
+                            <div class="grilla-oponente">
+                                <div class="minicarta"></div><div class="minicarta"></div>
+                                <div class="minicarta"></div><div class="minicarta"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            // 4. Dibujar tus propias 4 cartas tapadas por defecto
+            const miGrilla = document.getElementById('mis-cartas-html');
+            miGrilla.innerHTML = '';
+            yo.cartas.forEach((carta, index) => {
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta" id="mi-carta-${index}" 
                          data-valor="${carta.valor}" 
-                         data-palo="${carta.palo}" 
                          data-color="${carta.color}">
                         ?
                     </div>
                 `;
             });
+        }
 
-            // Mostramos el botón para iniciar la memorización
-            document.getElementById('btn-ver-cartas').style.display = 'block';
-        });
-
-        // LÓGICA DEL BOTÓN DE 3 SEGUNDOS
-        const btnVerCartas = document.getElementById('btn-ver-cartas');
-        btnVerCartas.addEventListener('click', () => {
-            // 1. Ocultamos el botón para que no lo presionen dos veces
-            btnVerCartas.style.display = 'none';
+        // --- MECÁNICA DE MEMORIZACIÓN (3 SEGUNDOS DE REGLAMENTO) ---
+        const btnVer = document.getElementById('btn-ver-cartas');
+        btnVer.addEventListener('click', () => {
+            btnVer.style.display = 'none';
             
-            // 2. Identificamos las dos cartas de abajo (índices 2 y 3 de la grilla)
-            const cartaIzq = document.getElementById('mi-carta-2');
-            const cartaDer = document.getElementById('mi-carta-3');
+            const cIzq = document.getElementById('mi-carta-2');
+            const cDer = document.getElementById('mi-carta-3');
 
-            // Función para dar vuelta una carta
-            const revelar = (divCarta) => {
-                divCarta.classList.remove('carta-oculta');
-                const colorClase = divCarta.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra';
-                divCarta.classList.add(colorClase);
-                divCarta.innerHTML = `${divCarta.dataset.valor}<br>${divCarta.dataset.palo.substring(0,3)}`;
+            const revelar = (el) => {
+                el.classList.remove('carta-oculta');
+                el.classList.add(el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
+                el.innerText = el.dataset.valor; // Solo el número/letra limpio
             };
 
-            // Función para volver a tapar
-            const tapar = (divCarta) => {
-                divCarta.classList.add('carta-oculta');
-                divCarta.classList.remove('carta-roja', 'carta-negra');
-                divCarta.innerHTML = '?';
+            const tapar = (el) => {
+                el.classList.add('carta-oculta');
+                el.classList.remove('carta-roja', 'carta-negra');
+                el.innerText = '?';
             };
 
-            // 3. Revelamos las cartas inferiores
-            revelar(cartaIzq);
-            revelar(cartaDer);
+            revelar(cIzq);
+            revelar(cDer);
 
-            // 4. Temporizador estricto de 3000 milisegundos (3 segundos)
             setTimeout(() => {
-                tapar(cartaIzq);
-                tapar(cartaDer);
-                // Acá el jugador ya está listo para jugar
+                tapar(cIzq);
+                tapar(cDer);
             }, 3000);
-        }); 
-        // --- LÓGICA DE TURNOS E INTERACCIÓN ---
-
-        // 1. Al hacer clic en el mazo central
-        const mazoRobar = document.getElementById('mazo-robar');
-        mazoRobar.addEventListener('click', () => {
-            socket.emit('robar_carta_turno', miSala);
         });
 
-        // 2. El servidor nos da la carta (solo si es nuestro turno)
-        socket.on('recibir_carta_robada', (carta) => {
-            // Por ahora, usamos un alert simple para verificar que funciona
-            // En el próximo paso crearemos los botones de "Descartar" o "Cambiar"
-            alert(`¡Es tu turno!\nLevantaste la carta: ${carta.valor} de ${carta.palo}`);
+        // Evento de clic en el mazo para robar (Prueba de turno básica)
+        document.getElementById('mazo-robar').addEventListener('click', () => {
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (turnoJugador.id !== miIdPeer) return alert("No es tu turno");
+            
+            alert("Mecánica de robo P2P conectada. El juego está listo para la lógica de descarte.");
         });
-
-        // 3. Mostrar mensajes generales en la consola para depurar
-        socket.on('mensaje_juego', (mensaje) => {
-            console.log("Sistema:", mensaje);
-        }); 
     </script>
 </body>
 </html>

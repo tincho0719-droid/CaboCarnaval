@@ -503,13 +503,14 @@
                 }
             });
 
-            // 5. Tus Cartas
+            /// 5. Tus Cartas
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
                 let estiloExtra = (turnoJugador.id === miIdPeer && yo.cartaEnMano) ? 'border: 3px dashed #f39c12; cursor: pointer;' : '';
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta mi-carta-interactiva" 
+                         id="mi-carta-${index}" 
                          data-indice="${index}"
                          data-valor="${carta.valor}" 
                          data-color="${carta.color}"

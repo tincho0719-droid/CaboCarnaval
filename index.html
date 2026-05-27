@@ -296,6 +296,7 @@
             fase: 'Lobby'
         };
 
+       let modoSeleccionCambio = false; // Variable global para saber si estamos por cambiar una carta
         // --- UI ELEMENTS ---
         const pInicio = document.getElementById('pantalla-inicio');
         const pCrear = document.getElementById('pantalla-crear');
@@ -388,12 +389,10 @@
         // --- HOST LOGIC ---
         function procesarDataHost(data, conn) {
             if (data.type === 'UNIRSE') {
-                // VALIDACIÓN: Si el juego ya empezó, rechazamos la conexión
                 if (estadoJuego.fase !== 'Lobby') {
                     conn.send({ type: 'RECHAZO', motivo: 'La partida ya ha comenzado.' });
                     return; 
                 }
-
                 estadoJuego.jugadores.push({ id: conn.peer, nombre: data.nombre, listo: false, cartas: [], cartaEnMano: null });
                 enviarEstadoATodos();
                 actualizarLobbyUI();
@@ -402,8 +401,45 @@
                 marcarListoLocal(conn.peer);
             }
             if (data.type === 'ACCION') {
-                procesarAccionLocal(conn.peer, data.accion);
+                procesarAccionLocal(conn.peer, data.accion, data.datosExtra);
             }
+        }
+
+        function procesarAccionLocal(peerId, accion, datosExtra = null) {
+            const jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (jugadorTurno.id !== peerId) return; 
+
+            if (accion === 'ROBAR_MAZO') {
+                jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
+                mostrarNotificacion(`${jugadorTurno.nombre} levantó una carta del mazo.`);
+            }
+            
+            if (accion === 'DESCARTAR') {
+                estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
+                jugadorTurno.cartaEnMano = null;
+                avanzarTurno();
+                mostrarNotificacion(`${jugadorTurno.nombre} descartó la carta.`);
+            }
+
+            if (accion === 'CAMBIAR') {
+                const indice = datosExtra; // El índice de la carta tapada que eligió (0, 1, 2 o 3)
+                const cartaReemplazada = jugadorTurno.cartas[indice];
+                
+                // Efectuamos el trueque
+                jugadorTurno.cartas[indice] = jugadorTurno.cartaEnMano;
+                estadoJuego.cartaCentro = cartaReemplazada;
+                jugadorTurno.cartaEnMano = null;
+                
+                avanzarTurno();
+                mostrarNotificacion(`${jugadorTurno.nombre} cambió una carta de su mesa.`);
+            }
+
+            enviarEstadoATodos();
+        }
+
+        function avanzarTurno() {
+            // Pasamos al siguiente jugador. El "%" asegura que vuelva a 0 si llega al final de la lista.
+            estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
         }
 
         function marcarListoLocal(peerId) {
@@ -514,12 +550,26 @@
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
                 miGrilla.innerHTML += `
-                    <div class="carta-juego carta-oculta" id="mi-carta-${index}" 
+                    <div class="carta-juego carta-oculta mi-carta-interactiva" id="mi-carta-${index}" 
+                         data-indice="${index}"
                          data-valor="${carta.valor}" 
                          data-color="${carta.color}">
                         ?
                     </div>
                 `;
+            });
+
+            // Agregamos el evento de clic a las cartas tapadas del jugador
+            document.querySelectorAll('.mi-carta-interactiva').forEach(divCarta => {
+                divCarta.addEventListener('click', (e) => {
+                    if (!modoSeleccionCambio) return; // Si no apretó "Cambiar" antes, ignoramos el clic
+                    
+                    modoSeleccionCambio = false; // Apagamos el modo
+                    const indexSeleccionado = parseInt(e.target.dataset.indice);
+
+                    if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);
+                    else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indexSeleccionado });
+                });
             });
         }
 
@@ -554,6 +604,28 @@
             if (turnoJugador.id !== miIdPeer) return; 
             
             mostrarNotificacion("Es tu turno: levantaste una carta del mazo.");
+        });
+        // --- BOTONES DE ACCIÓN (DESCARTAR / CAMBIAR) ---
+        document.getElementById('btn-descartar').addEventListener('click', () => {
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (turnoJugador.id !== miIdPeer || !turnoJugador.cartaEnMano) return;
+
+            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
+            else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
+        });
+
+        document.getElementById('btn-cambiar').addEventListener('click', () => {
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (turnoJugador.id !== miIdPeer || !turnoJugador.cartaEnMano) return;
+
+            modoSeleccionCambio = true;
+            mostrarNotificacion("Toca la carta de tu mesa que quieres reemplazar.");
+            
+            // Efecto visual para mostrar que las cartas ahora son botones
+            document.querySelectorAll('.mi-carta-interactiva').forEach(c => {
+                c.style.border = "3px dashed #f1c40f";
+                c.style.cursor = "pointer";
+            });
         });
     </script>
 </body>

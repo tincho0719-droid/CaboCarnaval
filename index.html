@@ -388,12 +388,21 @@
         // --- HOST LOGIC ---
         function procesarDataHost(data, conn) {
             if (data.type === 'UNIRSE') {
-                estadoJuego.jugadores.push({ id: conn.peer, nombre: data.nombre, listo: false, cartas: [] });
+                // VALIDACIÓN: Si el juego ya empezó, rechazamos la conexión
+                if (estadoJuego.fase !== 'Lobby') {
+                    conn.send({ type: 'RECHAZO', motivo: 'La partida ya ha comenzado.' });
+                    return; 
+                }
+
+                estadoJuego.jugadores.push({ id: conn.peer, nombre: data.nombre, listo: false, cartas: [], cartaEnMano: null });
                 enviarEstadoATodos();
                 actualizarLobbyUI();
             }
             if (data.type === 'LISTO') {
                 marcarListoLocal(conn.peer);
+            }
+            if (data.type === 'ACCION') {
+                procesarAccionLocal(conn.peer, data.accion);
             }
         }
 
@@ -433,6 +442,13 @@
 
         // --- CLIENT LOGIC ---
         function procesarDataInvitado(data) {
+            if (data.type === 'RECHAZO') {
+                mostrarNotificacion(data.motivo);
+                // Desconectamos y recargamos la página después de 3 segundos para limpiar su pantalla
+                setTimeout(() => window.location.reload(), 3000);
+                return;
+            }
+
             if (data.type === 'SINCRO') {
                 estadoJuego = data.estado;
                 if (estadoJuego.fase === 'Lobby') {

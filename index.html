@@ -53,7 +53,19 @@
         .estado-espera { color: #e74c3c; }
 
         /* Mesa de Juego Adaptada a Celulares */
-        .mesa-tablero { width: 100%; max-width: 600px; background-color: var(--surface-color); border-radius: 20px; border: 2px solid #2a2a2a; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; }
+        .mesa-tablero { 
+            width: 100%; 
+            max-width: 600px; 
+            margin: 0 auto; /* ESTO CENTRA LA MESA EN COMPUTADORAS */
+            background-color: var(--surface-color); 
+            border-radius: 20px; 
+            border: 2px solid #2a2a2a; 
+            padding: 15px; 
+            box-sizing: border-box; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
         #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; }
         
         #zona-oponentes { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; width: 100%; }
@@ -100,13 +112,28 @@
 </head>
 <body>
 
-    <div id="pantalla-menu" class="pantalla activa">
+    <<div id="pantalla-inicio" class="pantalla activa">
         <h1>CABO</h1>
         <div class="sub">Mesa Descentralizada P2P</div>
-        <input type="text" id="input-nombre" placeholder="Tu Nombre">
-        <button id="btn-crear">Crear Nueva Partida</button>
-        <input type="text" id="input-codigo" placeholder="Código de Invitación" style="text-transform: uppercase;">
-        <button id="btn-unirse" class="btn-secundario">Unirse a Partida</button>
+        <button id="btn-ir-crear">Crear Nueva Partida</button>
+        <button id="btn-ir-unirse" class="btn-secundario">Unirse a Partida</button>
+    </div>
+
+    <div id="pantalla-crear" class="pantalla">
+        <h1>Crear Sala</h1>
+        <div class="sub">Serás el anfitrión del juego</div>
+        <input type="text" id="input-nombre-crear" placeholder="Tu Nombre">
+        <button id="btn-confirmar-crear">Generar Código</button>
+        <button class="btn-secundario btn-volver">Volver atrás</button>
+    </div>
+
+    <div id="pantalla-unirse" class="pantalla">
+        <h1>Unirse</h1>
+        <div class="sub">Ingresa a una sala existente</div>
+        <input type="text" id="input-nombre-unirse" placeholder="Tu Nombre">
+        <input type="text" id="input-codigo" placeholder="Código de 4 letras" style="text-transform: uppercase;">
+        <button id="btn-confirmar-unirse">Entrar a la Sala</button>
+        <button class="btn-secundario btn-volver">Volver atrás</button>
     </div>
 
     <div id="pantalla-lobby" class="pantalla">
@@ -206,18 +233,26 @@
             fase: 'Lobby'
         };
 
-        // UI Elements
-        const pMenu = document.getElementById('pantalla-menu');
+       // UI Elements actualizados
+        const pInicio = document.getElementById('pantalla-inicio');
+        const pCrear = document.getElementById('pantalla-crear');
+        const pUnirse = document.getElementById('pantalla-unirse');
         const pLobby = document.getElementById('pantalla-lobby');
         const pJuego = document.getElementById('pantalla-juego');
 
-        // --- EVENTOS DE INTERFAZ ---
-        document.getElementById('btn-crear').addEventListener('click', () => {
-            miNombre = document.getElementById('input-nombre').value.trim();
-            if (!miNombre) return alert("Ingresa tu nombre");
+        // --- NAVEGACIÓN DEL MENÚ PRINCIPAL ---
+        document.getElementById('btn-ir-crear').addEventListener('click', () => cambiarPantalla(pCrear));
+        document.getElementById('btn-ir-unirse').addEventListener('click', () => cambiarPantalla(pUnirse));
+        document.querySelectorAll('.btn-volver').forEach(btn => {
+            btn.addEventListener('click', () => cambiarPantalla(pInicio));
+        });
+
+        // --- EVENTOS DE CREAR / UNIRSE ---
+        document.getElementById('btn-confirmar-crear').addEventListener('click', () => {
+            miNombre = document.getElementById('input-nombre-crear').value.trim();
+            if (!miNombre) return alert("Ingresa tu nombre para continuar");
             
             esAnfitrion = true;
-            // Generamos un código corto aleatorio de 4 letras
             codigoSalaGlobal = Math.random().toString(36).substr(2, 4).toUpperCase();
             document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
             
@@ -225,15 +260,15 @@
             inicializarPeer(`CABO-${codigoSalaGlobal}`);
         });
 
-        document.getElementById('btn-unirse').addEventListener('click', () => {
-            miNombre = document.getElementById('input-nombre').value.trim();
+        document.getElementById('btn-confirmar-unirse').addEventListener('click', () => {
+            miNombre = document.getElementById('input-nombre-unirse').value.trim();
             codigoSalaGlobal = document.getElementById('input-codigo').value.trim().toUpperCase();
-            if (!miNombre || !codigoSalaGlobal) return alert("Completa nombre y código");
+            if (!miNombre || !codigoSalaGlobal) return alert("Completa tu nombre y el código de la sala");
             
             esAnfitrion = false;
             cambiarPantalla(pLobby);
             document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
-            inicializarPeer(); // ID automático para invitados
+            inicializarPeer(); 
         });
 
         document.getElementById('btn-listo').addEventListener('click', () => {

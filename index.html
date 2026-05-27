@@ -30,6 +30,46 @@
             box-sizing: border-box;
         }
 
+        /* --- SISTEMA DE NOTIFICACIONES --- */
+        #contenedor-notificaciones {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none; 
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .notificacion-toast {
+            background-color: #2c3e50;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            border-left: 4px solid var(--accent-color);
+            animation: deslizarAbajo 0.3s ease-out forwards;
+        }
+
+        .notificacion-toast.fade-out { animation: desvanecer 0.3s ease-in forwards; }
+
+        @keyframes deslizarAbajo {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes desvanecer {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* --- INTERFAZ GENERAL --- */
         .pantalla { display: none; width: 100%; max-width: 500px; padding: 10px; box-sizing: border-box; }
         .activa { display: block; }
 
@@ -44,7 +84,7 @@
         .btn-secundario { background-color: #333; color: white; border: 1px solid #444; }
         .btn-secundario:hover { background-color: #444; }
 
-        /* Lobby */
+        /* --- LOBBY --- */
         .codigo-alerta { font-size: 24px; color: var(--accent-color); font-weight: bold; background: var(--surface-color); padding: 10px; border-radius: 8px; border: 1px dashed var(--accent-color); margin: 15px 0; }
         .lista-jugadores { background: var(--surface-color); border-radius: 10px; padding: 5px 15px; margin: 15px 0; text-align: left; }
         .jugador-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
@@ -52,11 +92,11 @@
         .estado-listo { color: #2ecc71; font-weight: bold; }
         .estado-espera { color: #e74c3c; }
 
-        /* Mesa de Juego Adaptada a Celulares */
+        /* --- MESA DE JUEGO --- */
         .mesa-tablero { 
             width: 100%; 
             max-width: 600px; 
-            margin: 0 auto; /* ESTO CENTRA LA MESA EN COMPUTADORAS */
+            margin: 0 auto; /* Centrado para PC */
             background-color: var(--surface-color); 
             border-radius: 20px; 
             border: 2px solid #2a2a2a; 
@@ -66,6 +106,7 @@
             flex-direction: column; 
             gap: 20px; 
         }
+        
         #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; }
         
         #zona-oponentes { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; width: 100%; }
@@ -76,7 +117,6 @@
 
         .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
         
-        /* Diseño de Cartas Ultra Minimalista */
         .carta-juego { 
             width: 65px; 
             height: 95px; 
@@ -86,7 +126,7 @@
             justify-content: center; 
             align-items: center; 
             font-weight: 800; 
-            font-size: 26px; /* Número bien definido y grande */
+            font-size: 26px; 
             user-select: none; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.2s;
@@ -103,7 +143,6 @@
         .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .grilla-cartas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-        /* Responsivo Extremo para Pantallas Muy Chicas */
         @media (max-width: 360px) {
             .carta-juego { width: 55px; height: 80px; font-size: 22px; }
             .mesa-tablero { padding: 10px; }
@@ -112,7 +151,9 @@
 </head>
 <body>
 
-    <<div id="pantalla-inicio" class="pantalla activa">
+    <div id="contenedor-notificaciones"></div>
+
+    <div id="pantalla-inicio" class="pantalla activa">
         <h1>CABO</h1>
         <div class="sub">Mesa Descentralizada P2P</div>
         <button id="btn-ir-crear">Crear Nueva Partida</button>
@@ -163,11 +204,28 @@
     </div>
 
     <script>
-        // --- LOGICA DE CARTAS (Estructura interna liviana) ---
+        // --- SISTEMA DE NOTIFICACIONES ---
+        function mostrarNotificacion(mensaje) {
+            const contenedor = document.getElementById('contenedor-notificaciones');
+            const noti = document.createElement('div');
+            noti.className = 'notificacion-toast';
+            noti.innerText = mensaje;
+            
+            contenedor.appendChild(noti);
+
+            setTimeout(() => {
+                noti.classList.add('fade-out');
+                setTimeout(() => {
+                    if (contenedor.contains(noti)) contenedor.removeChild(noti);
+                }, 300);
+            }, 3000);
+        }
+
+        // --- LOGICA DE CARTAS ---
         class Carta {
             constructor(valor, color, puntos, poder) {
                 this.valor = valor;
-                this.color = color; // 'Rojo' o 'Negro'
+                this.color = color; 
                 this.puntos = puntos;
                 this.poder = poder;
                 this.id = Math.random().toString(36).substr(2, 5);
@@ -178,35 +236,31 @@
             let mazo = [];
             const valores = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
             
-            // Generamos 2 mazos franceses (sin texto de palo, solo lógica de color)
             for (let m = 0; m < 2; m++) {
                 valores.forEach(v => {
-                    // 2 Palos Rojos (Corazones/Diamantes)
                     for(let r=0; r<2; r++) {
                         let pts = parseInt(v);
                         if(v === 'A') pts = 1;
                         if(v === 'J') pts = 1;
                         if(v === 'Q') pts = 12;
-                        if(v === 'K') pts = -1; // Rey Rojo vale -1
+                        if(v === 'K') pts = -1;
                         let pod = (v==='7'||v==='8')?'Ver propia':(v==='9'||v==='10')?'Ver ajena':(v==='J'||v==='Q')?'Cambio ciego':'Ninguno';
                         mazo.push(new Carta(v, 'Rojo', pts, pod));
                     }
-                    // 2 Palos Negros (Picas/Tréboles)
                     for(let n=0; n<2; n++) {
                         let pts = parseInt(v);
                         if(v === 'A') pts = 1;
                         if(v === 'J') pts = 11;
                         if(v === 'Q') pts = 12;
-                        if(v === 'K') pts = 13; // Rey Negro vale 13
+                        if(v === 'K') pts = 13;
                         let pod = (v==='7'||v==='8')?'Ver propia':(v==='9'||v==='10')?'Ver ajena':(v==='J'||v==='Q')?'Cambio ciego':(v==='K')?'Ver y cambiar':'Ninguno';
                         mazo.push(new Carta(v, 'Negro', pts, pod));
                     }
                 });
-                // 2 Comodines por mazo (0 puntos)
                 mazo.push(new Carta('JK', 'Rojo', 0, 'Ninguno'));
                 mazo.push(new Carta('JK', 'Negro', 0, 'Ninguno'));
             }
-            // Mezclar
+            
             for (let i = mazo.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [mazo[i], mazo[j]] = [mazo[j], mazo[i]];
@@ -214,43 +268,46 @@
             return mazo;
         }
 
-        // --- VARIABLES DE ESTADO RED P2P ---
+        // --- VARIABLES DE RED P2P ---
         let peer = null;
         let miIdPeer = '';
         let miNombre = '';
         let esAnfitrion = false;
         let codigoSalaGlobal = '';
         
-        let conexionesAnfitrion = []; // Solo usado por el Host
-        let conexionAlAnfitrion = null; // Solo usado por los Invitados
+        let conexionesAnfitrion = []; 
+        let conexionAlAnfitrion = null; 
         
-        // Estado del juego compartido
         let estadoJuego = {
-            jugadores: [], // { id, nombre, listo, cartas: [] }
+            jugadores: [],
             mazo: [],
             cartaCentro: null,
             turnoActual: 0,
             fase: 'Lobby'
         };
 
-       // UI Elements actualizados
+        // --- UI ELEMENTS ---
         const pInicio = document.getElementById('pantalla-inicio');
         const pCrear = document.getElementById('pantalla-crear');
         const pUnirse = document.getElementById('pantalla-unirse');
         const pLobby = document.getElementById('pantalla-lobby');
         const pJuego = document.getElementById('pantalla-juego');
 
-        // --- NAVEGACIÓN DEL MENÚ PRINCIPAL ---
+        function cambiarPantalla(pantalla) {
+            document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+            pantalla.classList.add('activa');
+        }
+
+        // --- NAVEGACIÓN Y EVENTOS ---
         document.getElementById('btn-ir-crear').addEventListener('click', () => cambiarPantalla(pCrear));
         document.getElementById('btn-ir-unirse').addEventListener('click', () => cambiarPantalla(pUnirse));
         document.querySelectorAll('.btn-volver').forEach(btn => {
             btn.addEventListener('click', () => cambiarPantalla(pInicio));
         });
 
-        // --- EVENTOS DE CREAR / UNIRSE ---
         document.getElementById('btn-confirmar-crear').addEventListener('click', () => {
             miNombre = document.getElementById('input-nombre-crear').value.trim();
-            if (!miNombre) return alert("Ingresa tu nombre para continuar");
+            if (!miNombre) return mostrarNotificacion("Ingresa tu nombre para continuar");
             
             esAnfitrion = true;
             codigoSalaGlobal = Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -263,7 +320,7 @@
         document.getElementById('btn-confirmar-unirse').addEventListener('click', () => {
             miNombre = document.getElementById('input-nombre-unirse').value.trim();
             codigoSalaGlobal = document.getElementById('input-codigo').value.trim().toUpperCase();
-            if (!miNombre || !codigoSalaGlobal) return alert("Completa tu nombre y el código de la sala");
+            if (!miNombre || !codigoSalaGlobal) return mostrarNotificacion("Completa tu nombre y el código de la sala");
             
             esAnfitrion = false;
             cambiarPantalla(pLobby);
@@ -282,23 +339,16 @@
             }
         });
 
-        function cambiarPantalla(pantalla) {
-            document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
-            pantalla.classList.add('activa');
-        }
-
-        // --- INICIALIZACIÓN DE RED PEERJS ---
+        // --- RED PEERJS ---
         function inicializarPeer(idFijo = null) {
             peer = idFijo ? new Peer(idFijo) : new Peer();
 
             peer.on('open', (id) => {
                 miIdPeer = id;
                 if (esAnfitrion) {
-                    // El host se agrega a sí mismo a la lista
                     estadoJuego.jugadores.push({ id: miIdPeer, nombre: miNombre, listo: false, cartas: [] });
                     actualizarLobbyUI();
                 } else {
-                    // El invitado intenta conectarse al código del Host
                     conectarAlAnfitrion(`CABO-${codigoSalaGlobal}`);
                 }
             });
@@ -312,21 +362,20 @@
             
             peer.on('error', (err) => {
                 console.error(err);
-                alert("Error de red. Asegúrate de que el código sea correcto.");
-                window.location.reload();
+                mostrarNotificacion("Error de red. Asegúrate de que el código sea correcto.");
+                setTimeout(() => window.location.reload(), 3000);
             });
         }
 
         function conectarAlAnfitrion(idTarget) {
             conexionAlAnfitrion = peer.connect(idTarget);
             conexionAlAnfitrion.on('open', () => {
-                // Le mandamos nuestro nombre apenas abre el canal
                 conexionAlAnfitrion.send({ type: 'UNIRSE', nombre: miNombre });
             });
             conexionAlAnfitrion.on('data', (data) => procesarDataInvitado(data));
         }
 
-        // --- PROCESAMIENTO DE DATOS (Mente del Servidor en el Host) ---
+        // --- HOST LOGIC ---
         function procesarDataHost(data, conn) {
             if (data.type === 'UNIRSE') {
                 estadoJuego.jugadores.push({ id: conn.peer, nombre: data.nombre, listo: false, cartas: [] });
@@ -345,7 +394,6 @@
             actualizarLobbyUI();
             if (esAnfitrion) enviarEstadoATodos();
 
-            // Evaluar inicio del juego (Mínimo 2 jugadores y todos listos)
             let todosListos = estadoJuego.jugadores.every(j => j.listo);
             if (todosListos && estadoJuego.jugadores.length >= 2) {
                 iniciarPartidaMatematica();
@@ -356,7 +404,6 @@
             estadoJuego.fase = 'Jugando';
             estadoJuego.mazo = generarMazoCabo();
             
-            // Repartir 4 cartas a cada uno
             estadoJuego.jugadores.forEach(j => {
                 j.cartas = [estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop()];
             });
@@ -374,7 +421,7 @@
             });
         }
 
-        // --- PROCESAMIENTO DE DATOS (Ojos del Cliente/Invitado) ---
+        // --- CLIENT LOGIC ---
         function procesarDataInvitado(data) {
             if (data.type === 'SINCRO') {
                 estadoJuego = data.estado;
@@ -388,7 +435,7 @@
             }
         }
 
-        // --- RENDERIZADO VISUAL ACTUALIZADO (Ultra Minimalista) ---
+        // --- RENDERING ---
         function actualizarLobbyUI() {
             const divLista = document.getElementById('lista-jugadores');
             divLista.innerHTML = '';
@@ -401,8 +448,6 @@
         function comenzarJuegoUI() {
             cambiarPantalla(pJuego);
             renderizarMesaDinamica();
-            
-            // Activamos automáticamente el botón de la Fase 3 de memorización
             document.getElementById('btn-ver-cartas').style.display = 'block';
         }
 
@@ -410,7 +455,6 @@
             const yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             
-            // 1. Indicador de Turno
             const ind = document.getElementById('indicador-turno');
             if (turnoJugador.id === miIdPeer) {
                 ind.innerText = "¡ES TU TURNO!";
@@ -420,12 +464,10 @@
                 ind.style.color = "#f1c40f";
             }
 
-            // 2. Dibujar carta del centro (Solo valor y clase de color, sin tipo de palo)
             const divCentro = document.getElementById('carta-centro');
             divCentro.innerText = estadoJuego.cartaCentro.valor;
             divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
 
-            // 3. Dibujar oponentes en miniatura
             const divOponentes = document.getElementById('zona-oponentes');
             divOponentes.innerHTML = '';
             estadoJuego.jugadores.forEach(j => {
@@ -442,7 +484,6 @@
                 }
             });
 
-            // 4. Dibujar tus propias 4 cartas tapadas por defecto
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
@@ -456,7 +497,7 @@
             });
         }
 
-        // --- MECÁNICA DE MEMORIZACIÓN (3 SEGUNDOS DE REGLAMENTO) ---
+        // --- INTERACCIONES DE JUEGO ---
         const btnVer = document.getElementById('btn-ver-cartas');
         btnVer.addEventListener('click', () => {
             btnVer.style.display = 'none';
@@ -467,9 +508,8 @@
             const revelar = (el) => {
                 el.classList.remove('carta-oculta');
                 el.classList.add(el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
-                el.innerText = el.dataset.valor; // Solo el número/letra limpio
+                el.innerText = el.dataset.valor; 
             };
-
             const tapar = (el) => {
                 el.classList.add('carta-oculta');
                 el.classList.remove('carta-roja', 'carta-negra');
@@ -478,19 +518,16 @@
 
             revelar(cIzq);
             revelar(cDer);
-
-            setTimeout(() => {
-                tapar(cIzq);
-                tapar(cDer);
-            }, 3000);
+            setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
         });
 
-        // Evento de clic en el mazo para robar (Prueba de turno básica)
         document.getElementById('mazo-robar').addEventListener('click', () => {
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (turnoJugador.id !== miIdPeer) return alert("No es tu turno");
             
-            alert("Mecánica de robo P2P conectada. El juego está listo para la lógica de descarte.");
+            // Bloqueo silencioso si no es el turno
+            if (turnoJugador.id !== miIdPeer) return; 
+            
+            mostrarNotificacion("Es tu turno: levantaste una carta del mazo.");
         });
     </script>
 </body>

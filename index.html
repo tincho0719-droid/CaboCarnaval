@@ -21,68 +21,39 @@
             color: var(--text-color); 
             text-align: center; 
             margin: 0; 
-            padding: 10px; /* Reducimos padding para ganar espacio */
+            padding: 10px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            /* CAMBIOS AQUÍ: Alineamos arriba y permitimos scroll si es necesario */
             justify-content: flex-start; 
             min-height: 100vh; 
             box-sizing: border-box;
             overflow-y: auto; 
         }
 
-        /* --- SISTEMA DE NOTIFICACIONES --- */
+        /* --- NOTIFICACIONES --- */
         #contenedor-notificaciones {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: none; 
-            width: 90%;
-            max-width: 350px;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px;
         }
-
         .notificacion-toast {
-            background-color: #2c3e50;
-            color: #ffffff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            border-left: 4px solid var(--accent-color);
-            animation: deslizarAbajo 0.3s ease-out forwards;
+            background-color: #2c3e50; color: #ffffff; padding: 12px 20px; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center; font-weight: bold; font-size: 14px;
+            border-left: 4px solid var(--accent-color); animation: deslizarAbajo 0.3s ease-out forwards;
         }
-
         .notificacion-toast.fade-out { animation: desvanecer 0.3s ease-in forwards; }
-
-        @keyframes deslizarAbajo {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes desvanecer {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-10px); }
-        }
+        @keyframes deslizarAbajo { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes desvanecer { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
 
         /* --- INTERFAZ GENERAL --- */
         .pantalla { display: none; width: 100%; max-width: 500px; padding: 10px; box-sizing: border-box; }
         .activa { display: block; }
-
         h1 { color: var(--accent-color); letter-spacing: 3px; margin-bottom: 5px; font-size: 28px; }
         .sub { color: #888; font-size: 14px; margin-bottom: 25px; }
-
         input { padding: 14px; font-size: 16px; margin: 8px 0; width: 100%; border-radius: 8px; border: 1px solid #333; background: var(--surface-color); color: white; text-align: center; box-sizing: border-box; }
         button { padding: 14px 24px; font-size: 16px; margin: 10px 0; width: 100%; cursor: pointer; background-color: var(--accent-color); color: #000; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
         button:hover { background-color: #d68910; }
         button:disabled { background-color: #444; color: #888; cursor: not-allowed; }
-
         .btn-secundario { background-color: #333; color: white; border: 1px solid #444; }
         .btn-secundario:hover { background-color: #444; }
 
@@ -96,67 +67,37 @@
 
         /* --- MESA DE JUEGO --- */
         .mesa-tablero { 
-            width: 100%; 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background-color: var(--surface-color); 
-            border-radius: 20px; 
-            border: 2px solid #2a2a2a; 
-            padding: 15px; 
-            box-sizing: border-box; 
-            /* CAMBIOS AQUÍ: Flexibilidad interna */
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; /* Reducimos gap un poco */
-            justify-content: space-between; /* Distribuye arriba, centro y abajo */
+            width: 100%; max-width: 600px; margin: 0 auto; background-color: var(--surface-color); 
+            border-radius: 20px; border: 2px solid #2a2a2a; padding: 15px; box-sizing: border-box; 
+            display: flex; flex-direction: column; gap: 15px; justify-content: space-between; 
         }
-        
         #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; }
-
-       #zona-oponentes { 
-            display: flex; 
-            justify-content: center; 
-            gap: 8px; /* Espacio más compacto */
-            flex-wrap: wrap; 
-            width: 100%; 
-        } 
+        #zona-oponentes { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; width: 100%; }
         .oponente-bloque { background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; text-align: center; min-width: 70px; }
         .oponente-nombre { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
         .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
         .minicarta { width: 20px; height: 30px; background: #2980b9; border-radius: 3px; }
-
         .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
         
+        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; margin-top: auto; }
+        .grilla-cartas { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 340px; justify-items: center; 
+        }
+
         .carta-juego { 
-            width: 65px; 
-            height: 95px; 
-            background-color: #ffffff; 
-            border-radius: 8px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-weight: 800; 
-            font-size: 26px; 
-            user-select: none; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
+            width: 100%; max-width: 100px; aspect-ratio: 2.5 / 3.5; background-color: #ffffff; 
+            border-radius: 8px; display: flex; justify-content: center; align-items: center; 
+            font-weight: 800; font-size: 8vw; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s; border: 2px solid #fff; box-sizing: border-box;
         }
         .carta-oculta { 
             background: linear-gradient(135deg, #2c3e50 25%, #34495e 25%, #34495e 50%, #2c3e50 50%, #2c3e50 75%, #34495e 75%, #34495e 100%);
-            background-size: 20px 20px;
-            color: transparent !important;
-            border: 2px solid #fff;
+            background-size: 20px 20px; color: transparent !important; border: 2px solid #fff;
         }
         .carta-roja { color: var(--rojo-carta); }
         .carta-negra { color: #121212; }
 
-        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .grilla-cartas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-        @media (max-width: 360px) {
-            .carta-juego { width: 55px; height: 80px; font-size: 22px; }
-            .mesa-tablero { padding: 10px; }
-        }
+        @media (min-width: 600px) { .carta-juego { font-size: 36px; } }
     </style>
 </head>
 <body>
@@ -198,11 +139,10 @@
     <div id="pantalla-juego" class="pantalla" style="max-width: 100%;">
         <div class="mesa-tablero">
             <div id="indicador-turno">Conectando sincronización...</div>
-            
             <div id="zona-oponentes"></div>
-
+            
             <div class="centro-mesa">
-                <div id="mazo-robar" class="carta-juego carta-oculta" style="cursor: pointer;"></div>
+                <div id="mazo-robar" class="carta-juego carta-oculta"></div>
                 <div id="carta-centro" class="carta-juego"></div>
             </div>
 
@@ -214,8 +154,7 @@
     </div>
 
     <script>
-       <script>
-        // --- SISTEMA DE NOTIFICACIONES ---
+        // --- NOTIFICACIONES ---
         function mostrarNotificacion(mensaje) {
             const contenedor = document.getElementById('contenedor-notificaciones');
             const noti = document.createElement('div');
@@ -228,17 +167,13 @@
             }, 3000);
         }
 
-        // --- LÓGICA DE CARTAS ---
+        // --- CARTAS ---
         class Carta {
             constructor(valor, color, puntos, poder) {
-                this.valor = valor;
-                this.color = color; 
-                this.puntos = puntos;
-                this.poder = poder;
+                this.valor = valor; this.color = color; this.puntos = puntos; this.poder = poder;
                 this.id = Math.random().toString(36).substr(2, 5);
             }
         }
-
         function generarMazoCabo() {
             let mazo = [];
             const valores = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
@@ -265,18 +200,12 @@
             return mazo;
         }
 
-        // --- VARIABLES GLOBALES ---
-        let peer = null;
-        let miIdPeer = '';
-        let miNombre = '';
-        let esAnfitrion = false;
-        let codigoSalaGlobal = '';
-        let conexionesAnfitrion = []; 
-        let conexionAlAnfitrion = null; 
-        
+        // --- GLOBALES ---
+        let peer = null, miIdPeer = '', miNombre = '', esAnfitrion = false, codigoSalaGlobal = '';
+        let conexionesAnfitrion = [], conexionAlAnfitrion = null; 
         let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby' };
 
-        // --- UI ELEMENTS ---
+        // --- UI ---
         const pInicio = document.getElementById('pantalla-inicio');
         const pCrear = document.getElementById('pantalla-crear');
         const pUnirse = document.getElementById('pantalla-unirse');
@@ -288,7 +217,6 @@
             pantalla.classList.add('activa');
         }
 
-        // --- NAVEGACIÓN ---
         document.getElementById('btn-ir-crear').addEventListener('click', () => cambiarPantalla(pCrear));
         document.getElementById('btn-ir-unirse').addEventListener('click', () => cambiarPantalla(pUnirse));
         document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => cambiarPantalla(pInicio)));
@@ -320,7 +248,7 @@
             else conexionAlAnfitrion.send({ type: 'LISTO' });
         });
 
-        // --- RED PEERJS ---
+        // --- P2P ---
         function inicializarPeer(idFijo = null) {
             peer = idFijo ? new Peer(idFijo) : new Peer();
             peer.on('open', (id) => {
@@ -337,25 +265,21 @@
                 }
             });
             peer.on('error', (err) => {
-                console.error(err);
-                mostrarNotificacion("Error de red. Revisa el código de la sala.");
+                mostrarNotificacion("Error de red. Revisa el código.");
                 setTimeout(() => window.location.reload(), 3000);
             });
         }
 
         function conectarAlAnfitrion(idTarget) {
             conexionAlAnfitrion = peer.connect(idTarget);
-            // ENVIAMOS EL ID EXPLICITAMENTE PARA EVITAR ERRORES DE RED
             conexionAlAnfitrion.on('open', () => conexionAlAnfitrion.send({ type: 'UNIRSE', nombre: miNombre, id: miIdPeer }));
             conexionAlAnfitrion.on('data', (data) => procesarDataInvitado(data));
         }
 
-        // --- HOST LOGIC (ÁRBITRO) ---
+        // --- HOST ---
         function procesarDataHost(data, conn) {
             if (data.type === 'UNIRSE') {
                 if (estadoJuego.fase !== 'Lobby') return conn.send({ type: 'RECHAZO', motivo: 'La partida ya empezó.' });
-                
-                // Si no viene el id explícito, usamos el de la conexión como resguardo
                 const idFinal = data.id || conn.peer;
                 estadoJuego.jugadores.push({ id: idFinal, nombre: data.nombre, listo: false, cartas: [], cartaEnMano: null });
                 enviarEstadoATodos();
@@ -366,13 +290,10 @@
         }
 
         function marcarListoLocal(peerId) {
-            let jug = estadoJuego.jugadores.find(j => j.id === peerId);
-            if (!jug) jug = estadoJuego.jugadores.find(j => j.id === `CABO-${codigoSalaGlobal}`); // Fallback para el host
+            let jug = estadoJuego.jugadores.find(j => j.id === peerId) || estadoJuego.jugadores.find(j => j.id === `CABO-${codigoSalaGlobal}`);
             if (jug) jug.listo = true;
-            
             actualizarLobbyUI();
             if (esAnfitrion) enviarEstadoATodos();
-
             if (estadoJuego.jugadores.every(j => j.listo) && estadoJuego.jugadores.length >= 2) iniciarPartidaMatematica();
         }
 
@@ -390,17 +311,12 @@
 
         function procesarAccionLocal(peerId, accion, datosExtra = null) {
             let jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
-            
-            if (accion === 'ROBAR_MAZO') {
-                jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
-            }
-            
+            if (accion === 'ROBAR_MAZO') jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
             if (accion === 'DESCARTAR') {
                 estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
                 jugadorTurno.cartaEnMano = null;
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
-
             if (accion === 'CAMBIAR') {
                 const indice = datosExtra; 
                 const cartaReemplazada = jugadorTurno.cartas[indice];
@@ -409,16 +325,13 @@
                 jugadorTurno.cartaEnMano = null;
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
-
             enviarEstadoATodos();
             if (esAnfitrion) renderizarMesaDinamica(); 
         }
 
-        function enviarEstadoATodos() {
-            conexionesAnfitrion.forEach(conn => conn.send({ type: 'SINCRO', estado: estadoJuego }));
-        }
+        function enviarEstadoATodos() { conexionesAnfitrion.forEach(conn => conn.send({ type: 'SINCRO', estado: estadoJuego })); }
 
-        // --- CLIENT LOGIC ---
+        // --- CLIENTE ---
         function procesarDataInvitado(data) {
             if (data.type === 'RECHAZO') {
                 mostrarNotificacion(data.motivo);
@@ -428,12 +341,11 @@
             if (data.type === 'SINCRO') {
                 estadoJuego = data.estado;
                 if (estadoJuego.fase === 'Lobby') actualizarLobbyUI();
-                else if (estadoJuego.fase === 'Jugando' && pJuego.classList.contains('activa') === false) comenzarJuegoUI();
+                else if (estadoJuego.fase === 'Jugando' && !pJuego.classList.contains('activa')) comenzarJuegoUI();
                 else if (estadoJuego.fase === 'Jugando') renderizarMesaDinamica();
             }
         }
 
-        // --- RENDERIZADO VISUAL ---
         function actualizarLobbyUI() {
             const divLista = document.getElementById('lista-jugadores');
             divLista.innerHTML = '';
@@ -450,22 +362,18 @@
         }
 
         function obtenerJugadorLocal() {
-            // INTENTO 1: Buscar por ID de red
-            let yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
-            // INTENTO 2 (FALLBACK): Buscar por Nombre si las pestañas mezclaron los IDs
-            if (!yo) yo = estadoJuego.jugadores.find(j => j.nombre === miNombre);
-            return yo;
+            return estadoJuego.jugadores.find(j => j.id === miIdPeer) || estadoJuego.jugadores.find(j => j.nombre === miNombre);
         }
 
         function renderizarMesaDinamica() {
             const yo = obtenerJugadorLocal();
-            if (!yo) return; // Seguridad: Evita colapsos si el estado aún no cargó por completo
-            
+            if (!yo) return; 
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            
-            // 1. Textos Indicadores
+            const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
+
+            // 1. Textos
             const ind = document.getElementById('indicador-turno');
-            if (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) {
+            if (esMiTurno) {
                 if (yo.cartaEnMano) {
                     ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
                     ind.style.color = "#f39c12"; 
@@ -478,32 +386,26 @@
                 ind.style.color = "#f1c40f";
             }
 
-            // 2. Carta del Centro (Pozo de Descarte)
+            // 2. Centro
             const divCentro = document.getElementById('carta-centro');
             divCentro.innerText = estadoJuego.cartaCentro.valor;
             divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-            
-            if ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && yo.cartaEnMano) {
-                divCentro.style.border = "3px dashed #2ecc71";
-                divCentro.style.cursor = "pointer";
-            } else {
-                divCentro.style.border = "2px solid #fff";
-                divCentro.style.cursor = "default";
-            }
+            divCentro.style.border = (esMiTurno && yo.cartaEnMano) ? "3px dashed #2ecc71" : "2px solid #fff";
+            divCentro.style.cursor = (esMiTurno && yo.cartaEnMano) ? "pointer" : "default";
 
-            // 3. El Mazo Ciego
+            // 3. Mazo
             const mazo = document.getElementById('mazo-robar');
-            if ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && yo.cartaEnMano) {
+            if (esMiTurno && yo.cartaEnMano) {
                 mazo.className = `carta-juego ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 mazo.innerText = yo.cartaEnMano.valor;
                 mazo.style.cursor = "default";
             } else {
                 mazo.className = 'carta-juego carta-oculta';
                 mazo.innerText = '?';
-                mazo.style.cursor = ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && !yo.cartaEnMano) ? "pointer" : "default";
+                mazo.style.cursor = (esMiTurno && !yo.cartaEnMano) ? "pointer" : "default";
             }
 
-            // 4. Oponentes Miniatura
+            // 4. Oponentes
             const divOponentes = document.getElementById('zona-oponentes');
             divOponentes.innerHTML = '';
             estadoJuego.jugadores.forEach(j => {
@@ -524,79 +426,54 @@
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
-                let estiloExtra = ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && yo.cartaEnMano) ? 'border: 3px dashed #f39c12; cursor: pointer;' : '';
+                let estiloExtra = (esMiTurno && yo.cartaEnMano) ? 'border: 3px dashed #f39c12; cursor: pointer;' : '';
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta mi-carta-interactiva" 
-                         id="mi-carta-${index}" 
-                         data-indice="${index}"
-                         data-valor="${carta.valor}" 
-                         data-color="${carta.color}"
-                         style="${estiloExtra}">
-                        ?
-                    </div>
+                         id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
+                         style="${estiloExtra}">?</div>
                 `;
             });
         }
 
-        // --- INTERACCIONES TÁCTILES ---
-        
-        // Acción: Ver las cartas iniciales (3 segundos)
-        const btnVer = document.getElementById('btn-ver-cartas');
-        btnVer.addEventListener('click', () => {
-            btnVer.style.display = 'none';
+        // --- INTERACCIONES ---
+        document.getElementById('btn-ver-cartas').addEventListener('click', () => {
+            const btn = document.getElementById('btn-ver-cartas');
+            btn.style.display = 'none';
             const cIzq = document.getElementById('mi-carta-2');
             const cDer = document.getElementById('mi-carta-3');
             if(!cIzq || !cDer) return;
-
-            const revelar = (el) => {
-                el.classList.remove('carta-oculta');
-                el.classList.add(el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
-                el.innerText = el.dataset.valor; 
-            };
-            const tapar = (el) => {
-                el.classList.add('carta-oculta');
-                el.classList.remove('carta-roja', 'carta-negra');
-                el.innerText = '?';
-            };
+            const revelar = (el) => { el.classList.remove('carta-oculta'); el.classList.add(el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'); el.innerText = el.dataset.valor; };
+            const tapar = (el) => { el.classList.add('carta-oculta'); el.classList.remove('carta-roja', 'carta-negra'); el.innerText = '?'; };
             revelar(cIzq); revelar(cDer);
             setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
         });
 
-        // Acción 1: Robar Carta
         document.getElementById('mazo-robar').addEventListener('click', () => {
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || yo.cartaEnMano) return;
-
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'ROBAR_MAZO');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'ROBAR_MAZO' });
         });
 
-        // Acción 2: Descartar Carta Robada (Tocando el Centro)
         document.getElementById('carta-centro').addEventListener('click', () => {
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || !yo.cartaEnMano) return;
-
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
         });
 
-        // Acción 3: Cambiar Carta Robada por una Tuya
         document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
             const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
             if (!cartaInteractiva) return; 
-
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || !yo.cartaEnMano) return; 
-
             const indexSeleccionado = parseInt(cartaInteractiva.dataset.indice);
-
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indexSeleccionado });
         });
-    </script> 
     </script>
 </body>
 </html>

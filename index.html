@@ -214,6 +214,7 @@
     </div>
 
     <script>
+       <script>
         // --- SISTEMA DE NOTIFICACIONES ---
         function mostrarNotificacion(mensaje) {
             const contenedor = document.getElementById('contenedor-notificaciones');
@@ -336,14 +337,16 @@
                 }
             });
             peer.on('error', (err) => {
-                mostrarNotificacion("Error de red. Revisa el código.");
+                console.error(err);
+                mostrarNotificacion("Error de red. Revisa el código de la sala.");
                 setTimeout(() => window.location.reload(), 3000);
             });
         }
 
         function conectarAlAnfitrion(idTarget) {
             conexionAlAnfitrion = peer.connect(idTarget);
-            conexionAlAnfitrion.on('open', () => conexionAlAnfitrion.send({ type: 'UNIRSE', nombre: miNombre }));
+            // ENVIAMOS EL ID EXPLICITAMENTE PARA EVITAR ERRORES DE RED
+            conexionAlAnfitrion.on('open', () => conexionAlAnfitrion.send({ type: 'UNIRSE', nombre: miNombre, id: miIdPeer }));
             conexionAlAnfitrion.on('data', (data) => procesarDataInvitado(data));
         }
 
@@ -351,7 +354,10 @@
         function procesarDataHost(data, conn) {
             if (data.type === 'UNIRSE') {
                 if (estadoJuego.fase !== 'Lobby') return conn.send({ type: 'RECHAZO', motivo: 'La partida ya empezó.' });
-                estadoJuego.jugadores.push({ id: conn.peer, nombre: data.nombre, listo: false, cartas: [], cartaEnMano: null });
+                
+                // Si no viene el id explícito, usamos el de la conexión como resguardo
+                const idFinal = data.id || conn.peer;
+                estadoJuego.jugadores.push({ id: idFinal, nombre: data.nombre, listo: false, cartas: [], cartaEnMano: null });
                 enviarEstadoATodos();
                 actualizarLobbyUI();
             }
@@ -361,7 +367,9 @@
 
         function marcarListoLocal(peerId) {
             let jug = estadoJuego.jugadores.find(j => j.id === peerId);
+            if (!jug) jug = estadoJuego.jugadores.find(j => j.id === `CABO-${codigoSalaGlobal}`); // Fallback para el host
             if (jug) jug.listo = true;
+            
             actualizarLobbyUI();
             if (esAnfitrion) enviarEstadoATodos();
 
@@ -381,9 +389,8 @@
         }
 
         function procesarAccionLocal(peerId, accion, datosExtra = null) {
-            const jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (jugadorTurno.id !== peerId) return; 
-
+            let jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
+            
             if (accion === 'ROBAR_MAZO') {
                 jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
             }
@@ -391,7 +398,7 @@
             if (accion === 'DESCARTAR') {
                 estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
                 jugadorTurno.cartaEnMano = null;
-                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; // Avanzar Turno
+                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
 
             if (accion === 'CAMBIAR') {
@@ -400,7 +407,7 @@
                 jugadorTurno.cartas[indice] = jugadorTurno.cartaEnMano;
                 estadoJuego.cartaCentro = cartaReemplazada;
                 jugadorTurno.cartaEnMano = null;
-                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; // Avanzar Turno
+                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
 
             enviarEstadoATodos();
@@ -442,13 +449,23 @@
             document.getElementById('btn-ver-cartas').style.display = 'block';
         }
 
+        function obtenerJugadorLocal() {
+            // INTENTO 1: Buscar por ID de red
+            let yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
+            // INTENTO 2 (FALLBACK): Buscar por Nombre si las pestañas mezclaron los IDs
+            if (!yo) yo = estadoJuego.jugadores.find(j => j.nombre === miNombre);
+            return yo;
+        }
+
         function renderizarMesaDinamica() {
-            const yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
+            const yo = obtenerJugadorLocal();
+            if (!yo) return; // Seguridad: Evita colapsos si el estado aún no cargó por completo
+            
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             
             // 1. Textos Indicadores
             const ind = document.getElementById('indicador-turno');
-            if (turnoJugador.id === miIdPeer) {
+            if (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) {
                 if (yo.cartaEnMano) {
                     ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
                     ind.style.color = "#f39c12"; 
@@ -466,7 +483,7 @@
             divCentro.innerText = estadoJuego.cartaCentro.valor;
             divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
             
-            if (turnoJugador.id === miIdPeer && yo.cartaEnMano) {
+            if ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && yo.cartaEnMano) {
                 divCentro.style.border = "3px dashed #2ecc71";
                 divCentro.style.cursor = "pointer";
             } else {
@@ -474,23 +491,23 @@
                 divCentro.style.cursor = "default";
             }
 
-            // 3. El Mazo Ciego (Se da vuelta visualmente si tienes la carta en mano)
+            // 3. El Mazo Ciego
             const mazo = document.getElementById('mazo-robar');
-            if (turnoJugador.id === miIdPeer && yo.cartaEnMano) {
+            if ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && yo.cartaEnMano) {
                 mazo.className = `carta-juego ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 mazo.innerText = yo.cartaEnMano.valor;
                 mazo.style.cursor = "default";
             } else {
                 mazo.className = 'carta-juego carta-oculta';
                 mazo.innerText = '?';
-                mazo.style.cursor = (turnoJugador.id === miIdPeer && !yo.cartaEnMano) ? "pointer" : "default";
+                mazo.style.cursor = ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && !yo.cartaEnMano) ? "pointer" : "default";
             }
 
             // 4. Oponentes Miniatura
             const divOponentes = document.getElementById('zona-oponentes');
             divOponentes.innerHTML = '';
             estadoJuego.jugadores.forEach(j => {
-                if (j.id !== miIdPeer) {
+                if (j.nombre !== yo.nombre) {
                     divOponentes.innerHTML += `
                         <div class="oponente-bloque">
                             <div class="oponente-nombre">${j.nombre}</div>
@@ -503,11 +520,11 @@
                 }
             });
 
-            /// 5. Tus Cartas
+            // 5. Tus Cartas
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
-                let estiloExtra = (turnoJugador.id === miIdPeer && yo.cartaEnMano) ? 'border: 3px dashed #f39c12; cursor: pointer;' : '';
+                let estiloExtra = ((turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre) && yo.cartaEnMano) ? 'border: 3px dashed #f39c12; cursor: pointer;' : '';
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta mi-carta-interactiva" 
                          id="mi-carta-${index}" 
@@ -521,7 +538,7 @@
             });
         }
 
-        // --- INTERACCIONES TÁCTILES CON LA MESA ---
+        // --- INTERACCIONES TÁCTILES ---
         
         // Acción: Ver las cartas iniciales (3 segundos)
         const btnVer = document.getElementById('btn-ver-cartas');
@@ -529,6 +546,8 @@
             btnVer.style.display = 'none';
             const cIzq = document.getElementById('mi-carta-2');
             const cDer = document.getElementById('mi-carta-3');
+            if(!cIzq || !cDer) return;
+
             const revelar = (el) => {
                 el.classList.remove('carta-oculta');
                 el.classList.add(el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
@@ -545,9 +564,9 @@
 
         // Acción 1: Robar Carta
         document.getElementById('mazo-robar').addEventListener('click', () => {
-            const yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
+            const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (turnoJugador.id !== miIdPeer || yo.cartaEnMano) return; // Ignora si no es turno o si ya robó
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || yo.cartaEnMano) return;
 
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'ROBAR_MAZO');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'ROBAR_MAZO' });
@@ -555,28 +574,29 @@
 
         // Acción 2: Descartar Carta Robada (Tocando el Centro)
         document.getElementById('carta-centro').addEventListener('click', () => {
-            const yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
+            const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (turnoJugador.id !== miIdPeer || !yo.cartaEnMano) return; // Ignora si no tiene carta en mano
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || !yo.cartaEnMano) return;
 
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
         });
 
-        // Acción 3: Cambiar Carta Robada por una Tuya (Tocando tus cartas)
+        // Acción 3: Cambiar Carta Robada por una Tuya
         document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
             const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
-            if (!cartaInteractiva) return; // Ignora si tocó fuera de la carta
+            if (!cartaInteractiva) return; 
 
-            const yo = estadoJuego.jugadores.find(j => j.id === miIdPeer);
+            const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (turnoJugador.id !== miIdPeer || !yo.cartaEnMano) return; // Ignora si no tiene carta en mano
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || !yo.cartaEnMano) return; 
 
             const indexSeleccionado = parseInt(cartaInteractiva.dataset.indice);
 
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indexSeleccionado });
         });
+    </script> 
     </script>
 </body>
 </html>

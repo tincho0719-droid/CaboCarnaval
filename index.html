@@ -422,7 +422,7 @@
             }
 
             if (accion === 'CAMBIAR') {
-                const indice = datosExtra; // El índice de la carta tapada que eligió (0, 1, 2 o 3)
+                const indice = datosExtra; 
                 const cartaReemplazada = jugadorTurno.cartas[indice];
                 
                 // Efectuamos el trueque
@@ -434,7 +434,11 @@
                 mostrarNotificacion(`${jugadorTurno.nombre} cambió una carta de su mesa.`);
             }
 
+            // Sincronizamos con los invitados
             enviarEstadoATodos();
+            
+            // EL FIX: Sincronizamos la pantalla visual del Anfitrión
+            renderizarMesaDinamica(); 
         }
 
         function avanzarTurno() {

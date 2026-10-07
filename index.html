@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cabo P2P - Torneo + Match Rápido</title>
+    <title>Cabo P2P - Modo Profesional</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <style>
         :root {
@@ -12,7 +12,7 @@
             --accent-color: #f39c12;
             --text-color: #e0e0e0;
             --rojo-carta: #e74c3c;
-            --negro-carta: #121212; /* Ajuste para mayor contraste en fondo blanco */
+            --negro-carta: #121212;
         }
 
         body { 
@@ -71,15 +71,14 @@
             border-radius: 20px; border: 2px solid #2a2a2a; padding: 15px; box-sizing: border-box; 
             display: flex; flex-direction: column; gap: 15px; justify-content: space-between; 
         }
-        #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; }
-        #alerta-match { display: none; color: #3498db; font-weight: bold; font-size: 14px; animation: titilar 1.5s infinite; }
+        #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; min-height: 20px; }
+        #alerta-match { display: none; color: #3498db; font-weight: bold; font-size: 14px; animation: titilar 1.5s infinite; margin-top: 5px;}
         
         #zona-oponentes { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; width: 100%; }
         .oponente-bloque { background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; text-align: center; min-width: 70px; }
         .oponente-nombre { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
         .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
         .minicarta { width: 20px; height: 30px; background: #2980b9; border-radius: 3px; }
-        .minicarta.carta-juego { font-size: 16px !important; border-width: 1px !important; }
 
         .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
         
@@ -94,12 +93,20 @@
             font-weight: 800; font-size: 8vw; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.2s, box-shadow 0.2s; border: 2px solid #fff; box-sizing: border-box;
         }
+        
+        .minicarta.carta-juego { font-size: 16px !important; }
+
+        /* --- CLASES DE REVELADO (A PRUEBA DE FALLOS CSS) --- */
         .carta-oculta { 
-            background: linear-gradient(135deg, #2c3e50 25%, #34495e 25%, #34495e 50%, #2c3e50 50%, #2c3e50 75%, #34495e 75%, #34495e 100%);
-            background-size: 20px 20px; color: transparent !important; border: 2px solid #fff;
+            background: linear-gradient(135deg, #2c3e50 25%, #34495e 25%, #34495e 50%, #2c3e50 50%, #2c3e50 75%, #34495e 75%, #34495e 100%) !important;
+            background-size: 20px 20px !important; color: transparent !important; border: 2px solid #fff;
         }
-        .carta-roja { color: var(--rojo-carta); }
-        .carta-negra { color: var(--negro-carta); }
+        .carta-visible {
+            background-color: #ffffff !important;
+            background-image: none !important;
+        }
+        .carta-visible.carta-roja { color: var(--rojo-carta) !important; }
+        .carta-visible.carta-negra { color: var(--negro-carta) !important; }
 
         /* ANIMACIÓN MATCH RÁPIDO */
         @keyframes titilar { 0% { box-shadow: 0 0 5px #3498db; } 50% { box-shadow: 0 0 20px #3498db; } 100% { box-shadow: 0 0 5px #3498db; } }
@@ -114,7 +121,7 @@
 
     <div id="pantalla-inicio" class="pantalla activa">
         <h1>CABO</h1>
-        <div class="sub">Mesa Descentralizada P2P - Torneo + Match</div>
+        <div class="sub">Mesa Descentralizada P2P</div>
         <button id="btn-ir-crear">Crear Nueva Partida</button>
         <button id="btn-ir-unirse" class="btn-secundario">Unirse a Partida</button>
     </div>
@@ -239,7 +246,7 @@
             ventanaMatch: false 
         };
 
-        // --- UI ---
+        // --- UI ROUTING ---
         const pInicio = document.getElementById('pantalla-inicio');
         const pCrear = document.getElementById('pantalla-crear');
         const pUnirse = document.getElementById('pantalla-unirse');
@@ -324,7 +331,7 @@
             conexionAlAnfitrion.on('data', (data) => procesarDataInvitado(data));
         }
 
-        // --- HOST LOGIC ---
+        // --- LÓGICA DE CONTROL (HOST) ---
         function procesarDataHost(data, conn) {
             if (data.type === 'UNIRSE') {
                 if (estadoJuego.fase !== 'Lobby') return conn.send({ type: 'RECHAZO', motivo: 'La partida ya empezó.' });
@@ -354,29 +361,89 @@
 
         function iniciarNuevaRonda() {
             estadoJuego.rondaActual++; 
-            estadoJuego.fase = 'Jugando';
+            estadoJuego.fase = 'Preparacion'; // Fase de bloqueo inicial
             estadoJuego.mazo = generarMazoCabo();
             estadoJuego.cantoCaboId = null;
             estadoJuego.rondaFinal = false;
-            estadoJuego.ventanaMatch = false;
+            estadoJuego.ventanaMatch = true; 
             estadoJuego.jugadores.forEach(j => {
                 j.cartas = [estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop()];
                 j.puntajeRonda = 0;
+                j.vioCartas = false;
+                j.cartasVisibles = false;
             });
             estadoJuego.cartaCentro = estadoJuego.mazo.pop();
             
             estadoJuego.turnoActual = (estadoJuego.rondaActual - 1) % estadoJuego.jugadores.length;
-            
             estadoJuego.estadoTurno = 'NORMAL';
             estadoJuego.poderData = {};
             enviarEstadoATodos();
             comenzarJuegoUI();
         }
 
+        function finalizarRonda() {
+            estadoJuego.fase = 'Resultados';
+            
+            // Revelamos absolutamente todas las cartas y sumamos
+            estadoJuego.jugadores.forEach(j => {
+                j.cartasVisibles = true;
+                j.puntajeRonda = j.cartas.reduce((total, c) => total + c.puntos, 0);
+            });
+
+            // Lógica exacta de Penalidad de Cabo
+            if (estadoJuego.cantoCaboId) {
+                let jugadorCabo = estadoJuego.jugadores.find(j => j.id === estadoJuego.cantoCaboId);
+                let menorPuntaje = Math.min(...estadoJuego.jugadores.map(j => j.puntajeRonda));
+                let cantidadMenores = estadoJuego.jugadores.filter(j => j.puntajeRonda === menorPuntaje).length;
+
+                if (jugadorCabo.puntajeRonda === menorPuntaje && cantidadMenores === 1) {
+                    jugadorCabo.puntajeRonda = 0; // Ganó con propiedad
+                } else {
+                    jugadorCabo.puntajeRonda = 15 + (jugadorCabo.puntajeRonda - menorPuntaje); // Falló (empate o perdió)
+                }
+            }
+
+            let algunPerdedor = false;
+            estadoJuego.jugadores.forEach(j => {
+                j.puntajeTotal += j.puntajeRonda;
+                if (j.puntajeTotal >= 100) algunPerdedor = true;
+            });
+            estadoJuego.partidaTerminada = algunPerdedor;
+        }
+
+        // --- SISTEMA CENTRALIZADO DE AVANCE DE TURNOS ---
+        const avanzarTurno = () => {
+            let jugadorActual = estadoJuego.jugadores[estadoJuego.turnoActual];
+            
+            // Si alguien cantó Cabo, a medida que terminan sus turnos se dan vuelta sus cartas
+            if (estadoJuego.rondaFinal) {
+                jugadorActual.cartasVisibles = true; 
+            }
+            
+            estadoJuego.estadoTurno = 'NORMAL';
+            estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+
+            let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            let terminoPorCabo = (estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId);
+            let terminoPorMazo = (estadoJuego.mazo.length === 0);
+            let alguienSinCartas = estadoJuego.jugadores.some(j => j.cartas.length === 0);
+
+            if (terminoPorCabo || terminoPorMazo || alguienSinCartas) finalizarRonda();
+        };
+
         function procesarAccionLocal(peerId, accion, datosExtra = null) {
+            
             if (accion === 'SIGUIENTE_RONDA' && esAnfitrion) {
                 iniciarNuevaRonda();
                 return;
+            }
+
+            if (accion === 'VIO_CARTAS') {
+                let jug = estadoJuego.jugadores.find(j => j.id === peerId);
+                if(jug) jug.vioCartas = true;
+                if (estadoJuego.fase === 'Preparacion' && estadoJuego.jugadores.every(j => j.vioCartas)) {
+                    estadoJuego.fase = 'Jugando';
+                }
             }
 
             let jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
@@ -406,12 +473,12 @@
                 if (poderActivado !== 'Ninguno') {
                     if ((poderActivado === 'ESPIAR_RIVAL' || poderActivado === 'INTERCAMBIAR' || poderActivado === 'ESPIAR_INTERCAMBIAR') && !hayRivales) {
                         mostrarNotificacion("No hay rivales para usar este poder.");
-                        estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                        avanzarTurno();
                     } else {
                         estadoJuego.estadoTurno = 'PODER_OPCIONAL';
                     }
                 } else {
-                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+                    avanzarTurno(); 
                 }
             }
 
@@ -424,8 +491,7 @@
                     else if (poderActivado === 'INTERCAMBIAR') estadoJuego.estadoTurno = 'PODER_INT_PROPIA';
                     else if (poderActivado === 'ESPIAR_INTERCAMBIAR') estadoJuego.estadoTurno = 'PODER_SUP_PROPIA';
                 } else {
-                    estadoJuego.estadoTurno = 'NORMAL';
-                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                    avanzarTurno();
                 }
             }
             
@@ -436,7 +502,7 @@
                 estadoJuego.cartaCentro = cartaReemplazada;
                 estadoJuego.ventanaMatch = true; 
                 jugadorTurno.cartaEnMano = null;
-                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+                avanzarTurno(); 
             }
 
             if (accion === 'MATCH_RAPIDO') {
@@ -446,12 +512,26 @@
                 if (estadoJuego.ventanaMatch && jugadorMatch && jugadorMatch.cartas[indiceCarta]) {
                     if (jugadorMatch.cartas[indiceCarta].valor === estadoJuego.cartaCentro.valor) {
                         jugadorMatch.cartas.splice(indiceCarta, 1);
-                        const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === idJugador);
-                        estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
                         
-                        estadoJuego.estadoTurno = 'NORMAL';
+                        if (estadoJuego.rondaFinal) jugadorMatch.cartasVisibles = true;
+
                         estadoJuego.ventanaMatch = false; 
+                        estadoJuego.estadoTurno = 'NORMAL';
                         if(jugadorMatch.cartaEnMano) jugadorMatch.cartaEnMano = null; 
+
+                        // El turno SALTA solo si el juego ya habia empezado
+                        if (estadoJuego.fase === 'Jugando') {
+                            const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === idJugador);
+                            estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
+                            
+                            // Verificar fin por match
+                            let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+                            if ((estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId) || estadoJuego.jugadores.some(j => j.cartas.length === 0)) {
+                                finalizarRonda();
+                            }
+                        } else if (estadoJuego.fase === 'Preparacion') {
+                            if (estadoJuego.jugadores.some(j => j.cartas.length === 0)) finalizarRonda();
+                        }
                     } else {
                         mostrarNotificacion(`¡Match fallido de ${jugadorMatch.nombre}! Penalidad.`);
                         if (estadoJuego.mazo.length > 0) {
@@ -464,7 +544,7 @@
             if (accion === 'CANTAR_CABO') {
                 estadoJuego.cantoCaboId = peerId;
                 estadoJuego.rondaFinal = true;
-                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                // El turno continúa para que el jugador haga su jugada final
             }
 
             if (accion === 'EJECUTAR_PODER') {
@@ -484,8 +564,7 @@
                         jugadorTurno.cartas[miIdx] = targetJug.cartas[targetIdx];
                         targetJug.cartas[targetIdx] = temp;
                     }
-                    estadoJuego.estadoTurno = 'NORMAL';
-                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                    avanzarTurno();
                 }
                 else if (tipo === 'SELECCION_SUP_PROPIA') {
                     estadoJuego.poderData.miIndice = datos.indice;
@@ -509,55 +588,22 @@
                             targetJug.cartas[targetIdx] = temp;
                         }
                     }
-                    estadoJuego.estadoTurno = 'NORMAL';
-                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                    avanzarTurno();
                 }
             }
 
             if (accion === 'FIN_TURNO') {
-                estadoJuego.estadoTurno = 'NORMAL';
-                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
-            }
-
-            // --- LÓGICA DE FIN DE RONDA ---
-            if (estadoJuego.fase === 'Jugando') {
-                let terminoPorCabo = (estadoJuego.rondaFinal && estadoJuego.jugadores[estadoJuego.turnoActual].id === estadoJuego.cantoCaboId);
-                let terminoPorMazo = (estadoJuego.mazo.length === 0);
-                let alguienSinCartas = estadoJuego.jugadores.some(j => j.cartas.length === 0);
-
-                if (terminoPorCabo || terminoPorMazo || alguienSinCartas) {
-                    estadoJuego.fase = 'Resultados';
-                    
-                    estadoJuego.jugadores.forEach(j => {
-                        j.puntajeRonda = j.cartas.reduce((total, c) => total + c.puntos, 0);
-                    });
-
-                    if (estadoJuego.cantoCaboId) {
-                        let jugadorCabo = estadoJuego.jugadores.find(j => j.id === estadoJuego.cantoCaboId);
-                        let esElMenor = estadoJuego.jugadores.every(j => j.id === jugadorCabo.id || j.puntajeRonda >= jugadorCabo.puntajeRonda);
-                        if (!esElMenor) {
-                            jugadorCabo.puntajeRonda += 10;
-                        }
-                    }
-
-                    let algunPerdedor = false;
-                    estadoJuego.jugadores.forEach(j => {
-                        j.puntajeTotal += j.puntajeRonda;
-                        if (j.puntajeTotal >= 100) algunPerdedor = true;
-                    });
-
-                    estadoJuego.partidaTerminada = algunPerdedor;
-                }
+                avanzarTurno(); 
             }
 
             enviarEstadoATodos();
-            if (estadoJuego.fase === 'Jugando' && esAnfitrion) renderizarMesaDinamica();
+            if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion') && esAnfitrion) renderizarMesaDinamica();
             if (estadoJuego.fase === 'Resultados' && esAnfitrion) mostrarPantallaResultados();
         }
 
         function enviarEstadoATodos() { conexionesAnfitrion.forEach(conn => conn.send({ type: 'SINCRO', estado: estadoJuego })); }
 
-        // --- CLIENTE ---
+        // --- CLIENTE INTERFAZ ---
         function procesarDataInvitado(data) {
             if (data.type === 'RECHAZO') {
                 mostrarNotificacion(data.motivo);
@@ -567,8 +613,8 @@
             if (data.type === 'SINCRO') {
                 estadoJuego = data.estado;
                 if (estadoJuego.fase === 'Lobby') actualizarLobbyUI();
-                else if (estadoJuego.fase === 'Jugando' && !pJuego.classList.contains('activa')) comenzarJuegoUI();
-                else if (estadoJuego.fase === 'Jugando') renderizarMesaDinamica();
+                else if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion') && !pJuego.classList.contains('activa')) comenzarJuegoUI();
+                else if (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion') renderizarMesaDinamica();
                 else if (estadoJuego.fase === 'Resultados') mostrarPantallaResultados();
             }
         }
@@ -587,7 +633,6 @@
         function comenzarJuegoUI() {
             cambiarPantalla(pJuego);
             renderizarMesaDinamica();
-            document.getElementById('btn-ver-cartas').style.display = 'block';
         }
 
         function mostrarPantallaResultados() {
@@ -651,23 +696,29 @@
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
 
+            // CONTROL DE BOTONES Y VISIBILIDAD INICIAL
+            const btnVerCartas = document.getElementById('btn-ver-cartas');
+            if (estadoJuego.fase === 'Preparacion' && !yo.vioCartas) btnVerCartas.style.display = 'block';
+            else btnVerCartas.style.display = 'none';
+
             const btnCabo = document.getElementById('btn-cantar-cabo');
-            if (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal) {
+            if (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') {
                 btnCabo.style.display = 'block';
             } else {
                 btnCabo.style.display = 'none';
             }
 
-            // ALERTA VISUAL GLOBAL DE MATCH
             const alertaMatch = document.getElementById('alerta-match');
-            if (estadoJuego.ventanaMatch && !estadoJuego.rondaFinal) {
-                alertaMatch.style.display = 'block';
-            } else {
-                alertaMatch.style.display = 'none';
-            }
+            if (estadoJuego.ventanaMatch && !estadoJuego.rondaFinal) alertaMatch.style.display = 'block';
+            else alertaMatch.style.display = 'none';
 
             const ind = document.getElementById('indicador-turno');
-            if (esMiTurno) {
+            
+            // Textos descriptivos
+            if (estadoJuego.fase === 'Preparacion') {
+                if (!yo.vioCartas) { ind.innerText = "TOCA EL BOTÓN PARA VER TUS CARTAS"; ind.style.color = "#f39c12"; } 
+                else { ind.innerText = "ESPERANDO A LOS DEMÁS JUGADORES..."; ind.style.color = "#888"; }
+            } else if (esMiTurno) {
                 if (estadoJuego.estadoTurno === 'PODER_OPCIONAL') {
                     ind.innerHTML = `
                         <div style="margin-bottom: 8px;">¿Quieres usar el poder de la carta?</div>
@@ -702,51 +753,38 @@
                 ind.style.color = "#f1c40f";
             }
 
-            if (estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') {
+            if (estadoJuego.rondaFinal && (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion')) {
                 ind.innerText = "¡ÚLTIMA RONDA! " + ind.innerText;
             }
 
             // 2. Centro
             const divCentro = document.getElementById('carta-centro');
             if (estadoJuego.cartaCentro && estadoJuego.cartaCentro.valor !== '') {
+                let claseMatch = (estadoJuego.ventanaMatch && estadoJuego.estadoTurno !== 'ESPERANDO') ? 'carta-match' : '';
+                divCentro.className = `carta-juego carta-visible ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'} ${claseMatch}`;
                 divCentro.innerText = estadoJuego.cartaCentro.valor;
-                divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-                
-                // FIX FONDO BLANCO: Forzar color blanco y limpiar imagen de fondo oculto
-                divCentro.style.backgroundColor = "#ffffff";
-                divCentro.style.backgroundImage = "none";
-                
-                if (estadoJuego.ventanaMatch && estadoJuego.estadoTurno !== 'ESPERANDO') {
-                    divCentro.classList.add('carta-match');
-                } else {
-                    divCentro.classList.remove('carta-match');
-                }
 
-                divCentro.style.border = (esMiTurno && yo.cartaEnMano) ? "3px dashed #2ecc71" : "2px solid #fff";
-                divCentro.style.cursor = (esMiTurno && yo.cartaEnMano) ? "pointer" : (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
+                if (esMiTurno && yo.cartaEnMano) divCentro.style.setProperty('border', '3px dashed #2ecc71', 'important');
+                else divCentro.style.removeProperty('border');
+                
+                divCentro.style.cursor = (esMiTurno && yo.cartaEnMano) ? "pointer" : (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && estadoJuego.fase === 'Jugando') ? "pointer" : "default";
             } else {
                 divCentro.innerText = '';
                 divCentro.className = `carta-juego`;
                 divCentro.style.border = "2px dashed #444";
-                divCentro.style.backgroundColor = "transparent";
-                divCentro.style.backgroundImage = "none";
                 divCentro.classList.remove('carta-match');
             }
 
             // 3. Mazo
             const mazo = document.getElementById('mazo-robar');
             if (esMiTurno && yo.cartaEnMano) {
-                mazo.className = `carta-juego ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                mazo.className = `carta-juego carta-visible ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 mazo.innerText = yo.cartaEnMano.valor;
-                mazo.style.backgroundColor = "#ffffff";
-                mazo.style.backgroundImage = "none";
                 mazo.style.cursor = "default";
             } else {
                 mazo.className = 'carta-juego carta-oculta';
                 mazo.innerText = '?';
-                mazo.style.backgroundColor = ""; // Permite el gradiente
-                mazo.style.backgroundImage = "";
-                mazo.style.cursor = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
+                mazo.style.cursor = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && estadoJuego.fase === 'Jugando') ? "pointer" : "default";
             }
 
             // 4. Oponentes
@@ -756,10 +794,15 @@
                 if (j.id !== yo.id && j.nombre !== yo.nombre) {
                     let htmlCartas = j.cartas.map((c, index) => {
                         let est = '';
-                        if (esMiTurno && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR')) {
-                            est = 'border: 2px dashed #9b59b6; cursor: pointer;';
+                        if (esMiTurno && !j.cartasVisibles && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR')) {
+                            est = 'border: 2px dashed #9b59b6 !important; cursor: pointer;';
                         }
-                        return `<div class="minicarta carta-juego carta-oculta carta-oponente-interactiva" data-id="${j.id}" data-jug-index="${jugIdx}" data-indice="${index}" data-valor="${c.valor}" data-color="${c.color}" style="${est}">?</div>`;
+                        
+                        if (j.cartasVisibles) {
+                            return `<div class="minicarta carta-juego carta-visible ${c.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}" style="${est}">${c.valor}</div>`;
+                        } else {
+                            return `<div class="minicarta carta-juego carta-oculta carta-oponente-interactiva" data-id="${j.id}" data-jug-index="${jugIdx}" data-indice="${index}" data-valor="${c.valor}" data-color="${c.color}" style="${est}">?</div>`;
+                        }
                     }).join('');
                     
                     divOponentes.innerHTML += `
@@ -777,21 +820,29 @@
             yo.cartas.forEach((carta, index) => {
                 let estiloExtra = '';
                 
-                if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') estiloExtra = 'border: 3px dashed #f39c12; cursor: pointer;';
-                if (esMiTurno && (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_INT_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA')) {
-                    estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer;';
+                if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') estiloExtra = 'border: 3px dashed #f39c12 !important; cursor: pointer;';
+                if (esMiTurno && !yo.cartasVisibles && (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_INT_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA')) {
+                    estiloExtra = 'border: 3px dashed #9b59b6 !important; cursor: pointer;';
                 }
                 
                 const estoyUsandoPoder = esMiTurno && estadoJuego.estadoTurno !== 'NORMAL';
                 if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder) {
-                    estiloExtra = 'border: 3px dashed #3498db; cursor: pointer; box-shadow: 0 0 10px #3498db;';
+                    estiloExtra = 'border: 3px dashed #3498db !important; cursor: pointer; box-shadow: 0 0 10px #3498db;';
                 }
                 
-                miGrilla.innerHTML += `
-                    <div class="carta-juego carta-oculta mi-carta-interactiva" 
-                         id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
-                         style="${estiloExtra}">?</div>
-                `;
+                if (yo.cartasVisibles) {
+                    miGrilla.innerHTML += `
+                        <div class="carta-juego carta-visible ${carta.color === 'Rojo' ? 'carta-roja' : 'carta-negra'} mi-carta-interactiva" 
+                             id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
+                             style="${estiloExtra}">${carta.valor}</div>
+                    `;
+                } else {
+                    miGrilla.innerHTML += `
+                        <div class="carta-juego carta-oculta mi-carta-interactiva" 
+                             id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
+                             style="${estiloExtra}">?</div>
+                    `;
+                }
             });
         }
 
@@ -822,22 +873,21 @@
             const cDer = document.getElementById('mi-carta-3');
             if(!cIzq || !cDer) return;
             
-            // FIX FONDO BLANCO EN INICIO
             const revelar = (el) => { 
-                el.className = `carta-juego mi-carta-interactiva ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; 
+                el.className = `carta-juego mi-carta-interactiva carta-visible ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; 
                 el.innerText = el.dataset.valor; 
-                el.style.backgroundColor = "#ffffff";
-                el.style.backgroundImage = "none";
             };
             const tapar = (el) => { 
                 el.className = 'carta-juego carta-oculta mi-carta-interactiva'; 
                 el.innerText = '?'; 
-                el.style.backgroundColor = ""; 
-                el.style.backgroundImage = "";
             };
             
             revelar(cIzq); revelar(cDer);
-            setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
+            setTimeout(() => { 
+                tapar(cIzq); tapar(cDer); 
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'VIO_CARTAS');
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'VIO_CARTAS' });
+            }, 3000);
         });
 
         document.getElementById('btn-cantar-cabo').addEventListener('click', () => {
@@ -846,6 +896,7 @@
         });
 
         document.getElementById('mazo-robar').addEventListener('click', () => {
+            if (estadoJuego.fase !== 'Jugando') return;
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || yo.cartaEnMano || estadoJuego.estadoTurno !== 'NORMAL') return;
@@ -854,6 +905,7 @@
         });
 
         document.getElementById('carta-centro').addEventListener('click', () => {
+            if (estadoJuego.fase !== 'Jugando') return;
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
@@ -887,13 +939,10 @@
                 
                 const color = cartaInteractiva.dataset.color;
                 const valor = cartaInteractiva.dataset.valor;
-                cartaInteractiva.className = `minicarta carta-juego ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-                cartaInteractiva.innerText = valor;
                 
-                // FIX FONDO BLANCO EN RIVALES
-                cartaInteractiva.style.backgroundColor = "#ffffff";
-                cartaInteractiva.style.backgroundImage = "none";
-                cartaInteractiva.style.border = '2px solid #fff';
+                // Muestra la carta localmente con la clase segura
+                cartaInteractiva.className = `minicarta carta-juego carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                cartaInteractiva.innerText = valor;
 
                 let tiempo = 3;
                 const ind = document.getElementById('indicador-turno');
@@ -904,11 +953,6 @@
                     clearInterval(conteo);
                     cartaInteractiva.className = 'minicarta carta-juego carta-oculta carta-oponente-interactiva';
                     cartaInteractiva.innerText = '?';
-                    
-                    // Limpieza
-                    cartaInteractiva.style.backgroundColor = "";
-                    cartaInteractiva.style.backgroundImage = "";
-                    cartaInteractiva.style.border = "";
                     
                     if (estadoAnterior === 'PODER_ESPIAR_RIVAL') {
                         if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
@@ -937,7 +981,8 @@
             const soyElDelTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
             const estoyUsandoPoder = soyElDelTurno && estadoJuego.estadoTurno !== 'NORMAL';
             
-            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder) {
+            // MATCH RÁPIDO (Cualquier fase)
+            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles) {
                 if (esAnfitrion) procesarAccionLocal(miIdPeer, 'MATCH_RAPIDO', { idJugador: yo.id, indiceCarta: indice });
                 else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'MATCH_RAPIDO', datosExtra: { idJugador: yo.id, indiceCarta: indice } });
                 return; 
@@ -951,13 +996,9 @@
                 
                 const color = cartaInteractiva.dataset.color;
                 const valor = cartaInteractiva.dataset.valor;
-                cartaInteractiva.className = `carta-juego mi-carta-interactiva ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-                cartaInteractiva.innerText = valor;
                 
-                // FIX FONDO BLANCO PROPIAS
-                cartaInteractiva.style.backgroundColor = "#ffffff";
-                cartaInteractiva.style.backgroundImage = "none";
-                cartaInteractiva.style.border = '2px solid #fff';
+                cartaInteractiva.className = `carta-juego mi-carta-interactiva carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                cartaInteractiva.innerText = valor;
 
                 let tiempo = 3;
                 const ind = document.getElementById('indicador-turno');
@@ -969,11 +1010,6 @@
                     clearInterval(conteo);
                     cartaInteractiva.className = 'carta-juego carta-oculta mi-carta-interactiva';
                     cartaInteractiva.innerText = '?';
-                    
-                    // Limpieza
-                    cartaInteractiva.style.backgroundColor = "";
-                    cartaInteractiva.style.backgroundImage = "";
-                    cartaInteractiva.style.border = "";
 
                     if (estadoAnterior === 'PODER_MIRAR_PROPIA') {
                         if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');

@@ -753,8 +753,9 @@
                 ind.style.color = "#f1c40f";
             }
 
+            // CORRECCIÓN DEL BUG VISUAL HTML APLICADO AQUÍ
             if (estadoJuego.rondaFinal && (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion')) {
-                ind.innerText = "¡ÚLTIMA RONDA! " + ind.innerText;
+                ind.innerHTML = `<div style="color: #e74c3c; font-weight: 900; font-size: 18px; margin-bottom: 5px; text-shadow: 0 0 5px #e74c3c;">¡ÚLTIMA RONDA!</div>` + ind.innerHTML;
             }
 
             // 2. Centro

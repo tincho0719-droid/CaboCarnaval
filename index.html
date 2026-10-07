@@ -154,7 +154,7 @@
     </div>
 
     <script>
-        // --- NOTIFICACIONES ---
+      // --- NOTIFICACIONES ---
         function mostrarNotificacion(mensaje) {
             const contenedor = document.getElementById('contenedor-notificaciones');
             const noti = document.createElement('div');
@@ -212,7 +212,8 @@
         // --- GLOBALES ---
         let peer = null, miIdPeer = '', miNombre = '', esAnfitrion = false, codigoSalaGlobal = '';
         let conexionesAnfitrion = [], conexionAlAnfitrion = null; 
-        let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby', estadoTurno: 'NORMAL' };
+        // poderData almacena los pasos intermedios de los poderes (qué carta elegiste para cambiar, etc)
+        let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby', estadoTurno: 'NORMAL', poderData: {} };
 
         // --- UI ---
         const pInicio = document.getElementById('pantalla-inicio');
@@ -315,10 +316,12 @@
             estadoJuego.cartaCentro = estadoJuego.mazo.pop();
             estadoJuego.turnoActual = 0;
             estadoJuego.estadoTurno = 'NORMAL';
+            estadoJuego.poderData = {};
             enviarEstadoATodos();
             comenzarJuegoUI();
         }
 
+        // LÓGICA CENTRAL DE TURNOS Y PODERES (SE EJECUTA EN EL HOST)
         function procesarAccionLocal(peerId, accion, datosExtra = null) {
             let jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
             
@@ -330,12 +333,14 @@
                 estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
                 let poderActivado = jugadorTurno.cartaEnMano.poder;
                 jugadorTurno.cartaEnMano = null;
+                estadoJuego.poderData = {}; // Limpiamos memoria de poderes
 
-                if (poderActivado === 'MIRAR_PROPIA') {
-                    estadoJuego.estadoTurno = 'PODER_MIRAR_PROPIA';
-                } else {
-                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
-                }
+                // Activación de estados según la carta descartada
+                if (poderActivado === 'MIRAR_PROPIA') estadoJuego.estadoTurno = 'PODER_MIRAR_PROPIA';
+                else if (poderActivado === 'ESPIAR_RIVAL') estadoJuego.estadoTurno = 'PODER_ESPIAR_RIVAL';
+                else if (poderActivado === 'INTERCAMBIAR') estadoJuego.estadoTurno = 'PODER_INT_PROPIA';
+                else if (poderActivado === 'ESPIAR_INTERCAMBIAR') estadoJuego.estadoTurno = 'PODER_SUP_PROPIA';
+                else estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
             
             if (accion === 'CAMBIAR') {
@@ -345,6 +350,52 @@
                 estadoJuego.cartaCentro = cartaReemplazada;
                 jugadorTurno.cartaEnMano = null;
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+            }
+
+            // PROCESAMIENTO MULTI-PASO DE PODERES AVANZADOS
+            if (accion === 'EJECUTAR_PODER') {
+                const { tipo, datos } = datosExtra;
+                
+                if (tipo === 'SELECCION_INT_PROPIA') {
+                    estadoJuego.poderData.miIndice = datos.indice;
+                    estadoJuego.estadoTurno = 'PODER_INT_RIVAL'; // Pasa al paso 2
+                }
+                else if (tipo === 'SELECCION_INT_RIVAL') {
+                    // Ejecuta el intercambio J y Q
+                    const miIdx = estadoJuego.poderData.miIndice;
+                    const targetIdx = datos.targetIndice;
+                    const targetJug = estadoJuego.jugadores.find(j => j.id === datos.targetId);
+                    
+                    const temp = jugadorTurno.cartas[miIdx];
+                    jugadorTurno.cartas[miIdx] = targetJug.cartas[targetIdx];
+                    targetJug.cartas[targetIdx] = temp;
+                    
+                    estadoJuego.estadoTurno = 'NORMAL';
+                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                }
+                else if (tipo === 'SELECCION_SUP_PROPIA') {
+                    estadoJuego.poderData.miIndice = datos.indice;
+                    estadoJuego.estadoTurno = 'PODER_SUP_RIVAL_ESPIAR'; // Pasa al paso 2
+                }
+                else if (tipo === 'SELECCION_SUP_RIVAL') {
+                    estadoJuego.poderData.targetId = datos.targetId;
+                    estadoJuego.poderData.targetIndice = datos.targetIndice;
+                    estadoJuego.estadoTurno = 'PODER_SUP_DECIDIR'; // Pasa al paso 3 (Botones)
+                }
+                else if (tipo === 'DECISION_SUP') {
+                    if (datos.cambiar) {
+                        // Ejecuta el intercambio K Negro si el jugador aceptó
+                        const miIdx = estadoJuego.poderData.miIndice;
+                        const targetIdx = estadoJuego.poderData.targetIndice;
+                        const targetJug = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.targetId);
+                        
+                        const temp = jugadorTurno.cartas[miIdx];
+                        jugadorTurno.cartas[miIdx] = targetJug.cartas[targetIdx];
+                        targetJug.cartas[targetIdx] = temp;
+                    }
+                    estadoJuego.estadoTurno = 'NORMAL';
+                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+                }
             }
 
             if (accion === 'FIN_TURNO') {
@@ -398,13 +449,24 @@
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
 
-            // 1. Textos
+            // 1. Textos y UI de Decisiones
             const ind = document.getElementById('indicador-turno');
             if (esMiTurno) {
-                if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
-                    ind.innerText = "¡PODER ACTIVADO! TOCA UNA CARTA TUYA PARA VERLA";
-                    ind.style.color = "#9b59b6"; 
-                } else if (yo.cartaEnMano) {
+                if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') { ind.innerText = "¡PODER! TOCA TU CARTA PARA VERLA (7 o 8)"; ind.style.color = "#9b59b6"; }
+                else if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL') { ind.innerText = "¡PODER! TOCA LA CARTA DE UN RIVAL PARA VERLA (9 o 10)"; ind.style.color = "#9b59b6"; }
+                else if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') { ind.innerText = "INTERCAMBIO: TOCA LA CARTA TUYA QUE VAS A DAR"; ind.style.color = "#3498db"; }
+                else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') { ind.innerText = "INTERCAMBIO: TOCA LA CARTA DEL RIVAL PARA ROBARSELA"; ind.style.color = "#3498db"; }
+                else if (estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') { ind.innerText = "SUPER CAMBIO: TOCA TU CARTA PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
+                else if (estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') { ind.innerText = "SUPER CAMBIO: TOCA LA CARTA DEL RIVAL PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
+                else if (estadoJuego.estadoTurno === 'PODER_SUP_DECIDIR') {
+                    ind.innerHTML = `
+                        <div style="margin-bottom: 8px;">¿Quieres intercambiar las cartas espiadas?</div>
+                        <button id="btn-sup-si" style="background:#2ecc71; border:none; color:white; padding:8px 20px; border-radius:5px; margin-right:10px; cursor:pointer; font-weight:bold;">SÍ, CAMBIAR</button>
+                        <button id="btn-sup-no" style="background:#e74c3c; border:none; color:white; padding:8px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">NO CAMBIAR</button>
+                    `;
+                    ind.style.color = "#fff";
+                }
+                else if (yo.cartaEnMano) {
                     ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
                     ind.style.color = "#f39c12"; 
                 } else {
@@ -435,18 +497,23 @@
                 mazo.style.cursor = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
             }
 
-            // 4. Oponentes
+            // 4. Oponentes (Ahora con interacción y dataset para poderes)
             const divOponentes = document.getElementById('zona-oponentes');
             divOponentes.innerHTML = '';
             estadoJuego.jugadores.forEach(j => {
                 if (j.nombre !== yo.nombre) {
+                    let htmlCartas = j.cartas.map((c, index) => {
+                        let est = '';
+                        if (esMiTurno && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR')) {
+                            est = 'border: 2px dashed #9b59b6; cursor: pointer;';
+                        }
+                        return `<div class="minicarta carta-juego carta-oculta carta-oponente-interactiva" data-id="${j.id}" data-indice="${index}" data-valor="${c.valor}" data-color="${c.color}" style="${est}">?</div>`;
+                    }).join('');
+                    
                     divOponentes.innerHTML += `
                         <div class="oponente-bloque">
                             <div class="oponente-nombre">${j.nombre}</div>
-                            <div class="grilla-oponente">
-                                <div class="minicarta"></div><div class="minicarta"></div>
-                                <div class="minicarta"></div><div class="minicarta"></div>
-                            </div>
+                            <div class="grilla-oponente">${htmlCartas}</div>
                         </div>
                     `;
                 }
@@ -458,7 +525,9 @@
             yo.cartas.forEach((carta, index) => {
                 let estiloExtra = '';
                 if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') estiloExtra = 'border: 3px dashed #f39c12; cursor: pointer;';
-                if (esMiTurno && estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer;';
+                if (esMiTurno && (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_INT_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA')) {
+                    estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer;';
+                }
                 
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta mi-carta-interactiva" 
@@ -467,6 +536,17 @@
                 `;
             });
         }
+
+        // --- EVENTOS DE BOTONES INYECTADOS EN EL INDICADOR ---
+        document.getElementById('indicador-turno').addEventListener('click', (e) => {
+            if (e.target.id === 'btn-sup-si') {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'DECISION_SUP', datos: { cambiar: true } });
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'DECISION_SUP', datos: { cambiar: true } } });
+            } else if (e.target.id === 'btn-sup-no') {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'DECISION_SUP', datos: { cambiar: false } });
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'DECISION_SUP', datos: { cambiar: false } } });
+            }
+        });
 
         // --- INTERACCIONES PRINCIPALES ---
         document.getElementById('btn-ver-cartas').addEventListener('click', () => {
@@ -497,6 +577,57 @@
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
         });
 
+        // --- CLIC EN CARTAS DE LOS OPONENTES ---
+        document.getElementById('zona-oponentes').addEventListener('click', (e) => {
+            const cartaInteractiva = e.target.closest('.carta-oponente-interactiva');
+            if (!cartaInteractiva) return;
+            
+            const yo = obtenerJugadorLocal();
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
+
+            const targetId = cartaInteractiva.dataset.id;
+            const targetIndice = parseInt(cartaInteractiva.dataset.indice);
+
+            // Poder 9, 10 (Espiar) o Primera fase de K (Espiar rival)
+            if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') {
+                const estadoAnterior = estadoJuego.estadoTurno;
+                estadoJuego.estadoTurno = 'ESPERANDO'; // Evitar múltiples clics
+                
+                // Mostrar carta
+                cartaInteractiva.className = `minicarta carta-juego ${cartaInteractiva.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                cartaInteractiva.innerText = cartaInteractiva.dataset.valor;
+                cartaInteractiva.style.border = '2px solid #fff';
+
+                let tiempo = 3;
+                const ind = document.getElementById('indicador-turno');
+                ind.innerText = `Espiando... (${tiempo}s)`;
+                const conteo = setInterval(() => { tiempo--; if(tiempo > 0) ind.innerText = `Espiando... (${tiempo}s)`; }, 1000);
+
+                setTimeout(() => {
+                    clearInterval(conteo);
+                    // Ocultamos de nuevo
+                    cartaInteractiva.className = 'minicarta carta-juego carta-oculta carta-oponente-interactiva';
+                    cartaInteractiva.innerText = '?';
+                    
+                    if (estadoAnterior === 'PODER_ESPIAR_RIVAL') {
+                        // Terminó de espiar (9/10), fin del turno
+                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
+                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
+                    } else {
+                        // Terminó de espiar al rival (K), ahora debe decidir
+                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_SUP_RIVAL', datos: { targetId, targetIndice } });
+                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_SUP_RIVAL', datos: { targetId, targetIndice } } });
+                    }
+                }, 3000);
+            } 
+            // Poder J, Q (Paso 2: Robar carta del rival)
+            else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_INT_RIVAL', datos: { targetId, targetIndice } });
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_INT_RIVAL', datos: { targetId, targetIndice } } });
+            }
+        });
+
         // --- CLIC EN CARTAS PROPIAS ---
         document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
             const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
@@ -507,40 +638,48 @@
             const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
             if (!yo || !esMiTurno) return; 
             
-            // LÓGICA DE PODER 7-8: Ver tu carta 3 segundos
-            if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
-                estadoJuego.estadoTurno = 'ESPERANDO'; // Evita dobles clics
+            const indice = parseInt(cartaInteractiva.dataset.indice);
+
+            // Poder 7, 8 (Mirar Propia) o Primera fase de K (Super Mirar Propia)
+            if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') {
+                const estadoAnterior = estadoJuego.estadoTurno;
+                estadoJuego.estadoTurno = 'ESPERANDO';
                 
-                // Forzamos la visualización directa reescribiendo la clase entera
                 cartaInteractiva.className = `carta-juego mi-carta-interactiva ${cartaInteractiva.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 cartaInteractiva.innerText = cartaInteractiva.dataset.valor;
-                cartaInteractiva.style.border = '2px solid #fff'; // Quitamos el borde violeta al clickear
+                cartaInteractiva.style.border = '2px solid #fff';
 
-                // Contador visual en pantalla
                 let tiempo = 3;
                 const ind = document.getElementById('indicador-turno');
                 ind.innerText = `Memorizando... (${tiempo}s)`;
                 
-                const conteo = setInterval(() => {
-                    tiempo--;
-                    if(tiempo > 0) ind.innerText = `Memorizando... (${tiempo}s)`;
-                }, 1000);
+                const conteo = setInterval(() => { tiempo--; if(tiempo > 0) ind.innerText = `Memorizando... (${tiempo}s)`; }, 1000);
 
-                // A los 3 segundos, limpiamos y terminamos el turno
                 setTimeout(() => {
                     clearInterval(conteo);
-                    if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
-                    else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
+                    if (estadoAnterior === 'PODER_MIRAR_PROPIA') {
+                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
+                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
+                    } else {
+                        // K Negro: avanza a espiar al rival
+                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_SUP_PROPIA', datos: { indice } });
+                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_SUP_PROPIA', datos: { indice } } });
+                    }
                 }, 3000);
-                
-                return; // Cortamos acá para que no haga el cambio de carta normal
+                return;
+            }
+
+            // Poder J, Q (Paso 1: Seleccionar qué carta tuya vas a dar)
+            if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_INT_PROPIA', datos: { indice } });
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_INT_PROPIA', datos: { indice } } });
+                return;
             }
 
             // LÓGICA NORMAL: Intercambiar la que robaste por una de tu mano
             if (yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') {
-                const indexSeleccionado = parseInt(cartaInteractiva.dataset.indice);
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indexSeleccionado });
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indice);
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indice });
             }
         });
     </script>

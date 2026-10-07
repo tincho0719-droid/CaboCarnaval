@@ -6,7 +6,7 @@
     <title>Cabo P2P - Edición Completa</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <style>
-        :root {
+        :root {  
             --bg-color: #121212;
             --surface-color: #1e1e1e;
             --accent-color: #f39c12;
@@ -553,50 +553,51 @@
         }
 
         function renderizarMesaDinamica() {
-            const yo = obtenerJugadorLocal();
-            if (!yo) return; 
-            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
+    const yo = obtenerJugadorLocal();
+    if (!yo) return; 
+    const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+    const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
 
-            document.getElementById('btn-cantar-cabo').style.display = 'none';
+    // 0. VISIBILIDAD DEL BOTÓN CABO (Independiente)
+    const btnCabo = document.getElementById('btn-cantar-cabo');
+    if (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal) {
+        btnCabo.style.display = 'block';
+    } else {
+        btnCabo.style.display = 'none';
+    }
 
-            // 1. Textos y UI de Decisiones
-            const ind = document.getElementById('indicador-turno');
-            if (esMiTurno) {
-                if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') { ind.innerText = "¡PODER (7/8)! TOCA UNA CARTA TUYA PARA VERLA"; ind.style.color = "#9b59b6"; }
-                else if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL') { ind.innerText = "¡PODER (9/10)! TOCA LA CARTA DE UN RIVAL PARA VERLA"; ind.style.color = "#9b59b6"; }
-                else if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') { ind.innerText = "INTERCAMBIO (J/Q): TOCA LA CARTA TUYA QUE VAS A DAR"; ind.style.color = "#3498db"; }
-                else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') { ind.innerText = "INTERCAMBIO (J/Q): TOCA LA CARTA DEL RIVAL PARA ROBARSELA"; ind.style.color = "#3498db"; }
-                else if (estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') { ind.innerText = "REY NEGRO (1/3): TOCA TU CARTA PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
-                else if (estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') { ind.innerText = "REY NEGRO (2/3): TOCA LA CARTA DEL RIVAL PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
-                else if (estadoJuego.estadoTurno === 'PODER_SUP_DECIDIR') {
-                    ind.innerHTML = `
-                        <div style="margin-bottom: 8px;">¿Quieres intercambiar las dos cartas que viste?</div>
-                        <button id="btn-sup-si" style="background:#2ecc71; border:none; color:white; padding:8px 16px; border-radius:5px; margin-right:8px; cursor:pointer; font-weight:bold;">SÍ, CAMBIAR</button>
-                        <button id="btn-sup-no" style="background:#e74c3c; border:none; color:white; padding:8px 16px; border-radius:5px; cursor:pointer; font-weight:bold;">NO</button>
-                    `;
-                    ind.style.color = "#fff";
-                }
-                else if (yo.cartaEnMano) {
-                    ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
-                    ind.style.color = "#f39c12"; 
-                } else {
-                    ind.innerText = "¡ES TU TURNO! TOCA EL MAZO O EL CENTRO PARA ROBAR";
-                    ind.style.color = "#2ecc71";
-                    
-                    // Mostrar botón cantar Cabo si corresponde
-                    if (estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal) {
-                        document.getElementById('btn-cantar-cabo').style.display = 'block';
-                    }
-                }
-            } else {
-                ind.innerText = `Turno de: ${turnoJugador.nombre}`;
-                ind.style.color = "#f1c40f";
-            }
+    // 1. Textos y UI de Decisiones
+    const ind = document.getElementById('indicador-turno');
+    if (esMiTurno) {
+        if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') { ind.innerText = "¡PODER (7/8)! TOCA UNA CARTA TUYA PARA VERLA"; ind.style.color = "#9b59b6"; }
+        else if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL') { ind.innerText = "¡PODER (9/10)! TOCA LA CARTA DE UN RIVAL PARA VERLA"; ind.style.color = "#9b59b6"; }
+        else if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') { ind.innerText = "INTERCAMBIO (J/Q): TOCA LA CARTA TUYA QUE VAS A DAR"; ind.style.color = "#3498db"; }
+        else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') { ind.innerText = "INTERCAMBIO (J/Q): TOCA LA CARTA DEL RIVAL PARA ROBARSELA"; ind.style.color = "#3498db"; }
+        else if (estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') { ind.innerText = "REY NEGRO (1/3): TOCA TU CARTA PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
+        else if (estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') { ind.innerText = "REY NEGRO (2/3): TOCA LA CARTA DEL RIVAL PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
+        else if (estadoJuego.estadoTurno === 'PODER_SUP_DECIDIR') {
+            ind.innerHTML = `
+                <div style="margin-bottom: 8px;">¿Quieres intercambiar las dos cartas que viste?</div>
+                <button id="btn-sup-si" style="background:#2ecc71; border:none; color:white; padding:8px 16px; border-radius:5px; margin-right:8px; cursor:pointer; font-weight:bold;">SÍ, CAMBIAR</button>
+                <button id="btn-sup-no" style="background:#e74c3c; border:none; color:white; padding:8px 16px; border-radius:5px; cursor:pointer; font-weight:bold;">NO</button>
+            `;
+            ind.style.color = "#fff";
+        }
+        else if (yo.cartaEnMano) {
+            ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
+            ind.style.color = "#f39c12"; 
+        } else {
+            ind.innerText = "¡ES TU TURNO! TOCA EL MAZO O EL CENTRO PARA ROBAR";
+            ind.style.color = "#2ecc71";
+        }
+    } else {
+        ind.innerText = `Turno de: ${turnoJugador.nombre}`;
+        ind.style.color = "#f1c40f";
+    }
 
-            if (estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') {
-                ind.innerText = "¡ÚLTIMA RONDA! " + ind.innerText;
-            }
+    if (estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') {
+        ind.innerText = "¡ÚLTIMA RONDA! " + ind.innerText;
+    }
 
             // 2. Centro
             const divCentro = document.getElementById('carta-centro');

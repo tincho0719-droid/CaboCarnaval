@@ -212,7 +212,6 @@
         // --- GLOBALES ---
         let peer = null, miIdPeer = '', miNombre = '', esAnfitrion = false, codigoSalaGlobal = '';
         let conexionesAnfitrion = [], conexionAlAnfitrion = null; 
-        // Agregamos 'estadoTurno' para manejar los poderes
         let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby', estadoTurno: 'NORMAL' };
 
         // --- UI ---
@@ -332,7 +331,6 @@
                 let poderActivado = jugadorTurno.cartaEnMano.poder;
                 jugadorTurno.cartaEnMano = null;
 
-                // Verificamos si la carta tiene poder de mirar
                 if (poderActivado === 'MIRAR_PROPIA') {
                     estadoJuego.estadoTurno = 'PODER_MIRAR_PROPIA';
                 } else {
@@ -349,7 +347,6 @@
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
 
-            // Esta acción se recibe cuando el jugador terminó de ver su carta
             if (accion === 'FIN_TURNO') {
                 estadoJuego.estadoTurno = 'NORMAL';
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
@@ -405,8 +402,8 @@
             const ind = document.getElementById('indicador-turno');
             if (esMiTurno) {
                 if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
-                    ind.innerText = "¡PODER ACTIVADO! TOCA UNA DE TUS CARTAS PARA VERLA";
-                    ind.style.color = "#9b59b6"; // Color púrpura para indicar magia/poder
+                    ind.innerText = "¡PODER ACTIVADO! TOCA UNA CARTA TUYA PARA VERLA";
+                    ind.style.color = "#9b59b6"; 
                 } else if (yo.cartaEnMano) {
                     ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
                     ind.style.color = "#f39c12"; 
@@ -461,7 +458,7 @@
             yo.cartas.forEach((carta, index) => {
                 let estiloExtra = '';
                 if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') estiloExtra = 'border: 3px dashed #f39c12; cursor: pointer;';
-                if (esMiTurno && estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer; animation: pulse 1.5s infinite;';
+                if (esMiTurno && estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer;';
                 
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta mi-carta-interactiva" 
@@ -471,15 +468,15 @@
             });
         }
 
-        // --- INTERACCIONES ---
+        // --- INTERACCIONES PRINCIPALES ---
         document.getElementById('btn-ver-cartas').addEventListener('click', () => {
             const btn = document.getElementById('btn-ver-cartas');
             btn.style.display = 'none';
             const cIzq = document.getElementById('mi-carta-2');
             const cDer = document.getElementById('mi-carta-3');
             if(!cIzq || !cDer) return;
-            const revelar = (el) => { el.classList.remove('carta-oculta'); el.classList.add(el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'); el.innerText = el.dataset.valor; };
-            const tapar = (el) => { el.classList.add('carta-oculta'); el.classList.remove('carta-roja', 'carta-negra'); el.innerText = '?'; };
+            const revelar = (el) => { el.className = `carta-juego mi-carta-interactiva ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; el.innerText = el.dataset.valor; };
+            const tapar = (el) => { el.className = 'carta-juego carta-oculta mi-carta-interactiva'; el.innerText = '?'; };
             revelar(cIzq); revelar(cDer);
             setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
         });
@@ -499,36 +496,47 @@
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
         });
-document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
+
+        // --- CLIC EN CARTAS PROPIAS ---
+        document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
             const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
             if (!cartaInteractiva) return; 
+            
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
             if (!yo || !esMiTurno) return; 
             
-            // Lógica si estoy usando el PODER de ver carta
+            // LÓGICA DE PODER 7-8: Ver tu carta 3 segundos
             if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
-                estadoJuego.estadoTurno = 'ESPERANDO'; // Evitamos que el jugador cliquee otra vez
+                estadoJuego.estadoTurno = 'ESPERANDO'; // Evita dobles clics
                 
-                // 1. Damos vuelta la carta localmente (sin borrar y redibujar la mesa)
-                cartaInteractiva.classList.remove('carta-oculta');
-                cartaInteractiva.classList.add(cartaInteractiva.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
+                // Forzamos la visualización directa reescribiendo la clase entera
+                cartaInteractiva.className = `carta-juego mi-carta-interactiva ${cartaInteractiva.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 cartaInteractiva.innerText = cartaInteractiva.dataset.valor;
-                
-                // 2. Actualizamos el texto manualmente y frenamos la animación
-                document.getElementById('indicador-turno').innerText = "Memoriza tu carta... (3s)";
-                cartaInteractiva.style.animation = "none"; 
+                cartaInteractiva.style.border = '2px solid #fff'; // Quitamos el borde violeta al clickear
 
-                // 3. A los 3 segundos pasamos el turno (lo que redibujará la mesa tapándola de nuevo)
+                // Contador visual en pantalla
+                let tiempo = 3;
+                const ind = document.getElementById('indicador-turno');
+                ind.innerText = `Memorizando... (${tiempo}s)`;
+                
+                const conteo = setInterval(() => {
+                    tiempo--;
+                    if(tiempo > 0) ind.innerText = `Memorizando... (${tiempo}s)`;
+                }, 1000);
+
+                // A los 3 segundos, limpiamos y terminamos el turno
                 setTimeout(() => {
+                    clearInterval(conteo);
                     if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
                     else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
                 }, 3000);
-                return;
+                
+                return; // Cortamos acá para que no haga el cambio de carta normal
             }
 
-            // Lógica de CAMBIAR carta normal
+            // LÓGICA NORMAL: Intercambiar la que robaste por una de tu mano
             if (yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') {
                 const indexSeleccionado = parseInt(cartaInteractiva.dataset.indice);
                 if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);

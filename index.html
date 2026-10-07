@@ -499,8 +499,7 @@
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
         });
-
-        document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
+document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
             const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
             if (!cartaInteractiva) return; 
             const yo = obtenerJugadorLocal();
@@ -510,20 +509,19 @@
             
             // Lógica si estoy usando el PODER de ver carta
             if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
-                // Dar vuelta localmente
+                estadoJuego.estadoTurno = 'ESPERANDO'; // Evitamos que el jugador cliquee otra vez
+                
+                // 1. Damos vuelta la carta localmente (sin borrar y redibujar la mesa)
                 cartaInteractiva.classList.remove('carta-oculta');
                 cartaInteractiva.classList.add(cartaInteractiva.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
                 cartaInteractiva.innerText = cartaInteractiva.dataset.valor;
                 
-                // Evitamos que cliquee otra mientras espera
-                estadoJuego.estadoTurno = 'ESPERANDO'; 
-                renderizarMesaDinamica(); 
+                // 2. Actualizamos el texto manualmente y frenamos la animación
+                document.getElementById('indicador-turno').innerText = "Memoriza tu carta... (3s)";
+                cartaInteractiva.style.animation = "none"; 
 
-                // A los 3 segundos la tapamos y pasamos el turno
+                // 3. A los 3 segundos pasamos el turno (lo que redibujará la mesa tapándola de nuevo)
                 setTimeout(() => {
-                    cartaInteractiva.classList.add('carta-oculta');
-                    cartaInteractiva.classList.remove('carta-roja', 'carta-negra');
-                    cartaInteractiva.innerText = '?';
                     if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
                     else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
                 }, 3000);

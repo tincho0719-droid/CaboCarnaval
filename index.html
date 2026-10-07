@@ -72,12 +72,14 @@
             display: flex; flex-direction: column; gap: 15px; justify-content: space-between; 
         }
         #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; }
+        #alerta-match { display: none; color: #3498db; font-weight: bold; font-size: 14px; animation: titilar 1.5s infinite; }
+        
         #zona-oponentes { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; width: 100%; }
         .oponente-bloque { background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; text-align: center; min-width: 70px; }
         .oponente-nombre { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
         .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
         .minicarta { width: 20px; height: 30px; background: #2980b9; border-radius: 3px; }
-        .minicarta.carta-juego { font-size: 16px !important; border-width: 1px !important; color: var(--text-color); }
+        .minicarta.carta-juego { font-size: 16px !important; border-width: 1px !important; }
 
         .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
         
@@ -145,6 +147,7 @@
     <div id="pantalla-juego" class="pantalla" style="max-width: 100%;">
         <div class="mesa-tablero">
             <div id="indicador-turno">Conectando sincronización...</div>
+            <div id="alerta-match">⚡ ¡MATCH RÁPIDO ABIERTO! Toca tu carta ⚡</div>
             <div id="zona-oponentes"></div>
             
             <div class="centro-mesa">
@@ -233,7 +236,7 @@
             fase: 'Lobby', estadoTurno: 'NORMAL', poderData: {},
             cantoCaboId: null, rondaFinal: false, partidaTerminada: false,
             rondaActual: 0, 
-            ventanaMatch: false // <--- NUEVO
+            ventanaMatch: false 
         };
 
         // --- UI ---
@@ -381,18 +384,18 @@
             if (accion === 'ROBAR_MAZO') {
                 if (estadoJuego.mazo.length === 0) return mostrarNotificacion("¡Se agotó el mazo!");
                 jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
-                estadoJuego.ventanaMatch = false; // Se cierra la ventana al robar
+                estadoJuego.ventanaMatch = false; 
             }
 
             if (accion === 'ROBAR_CENTRO') {
                 jugadorTurno.cartaEnMano = estadoJuego.cartaCentro;
                 estadoJuego.cartaCentro = { valor: '', color: 'Negro', puntos: 0, poder: 'Ninguno' }; 
-                estadoJuego.ventanaMatch = false; // Se cierra la ventana al robar
+                estadoJuego.ventanaMatch = false; 
             }
             
             if (accion === 'DESCARTAR') {
                 estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
-                estadoJuego.ventanaMatch = true; // Se abre la ventana para Match rápido
+                estadoJuego.ventanaMatch = true; 
                 
                 let poderActivado = jugadorTurno.cartaEnMano.poder;
                 jugadorTurno.cartaEnMano = null;
@@ -431,33 +434,25 @@
                 const cartaReemplazada = jugadorTurno.cartas[indice];
                 jugadorTurno.cartas[indice] = jugadorTurno.cartaEnMano;
                 estadoJuego.cartaCentro = cartaReemplazada;
-                estadoJuego.ventanaMatch = true; // Se abre ventana de match al cambiar
+                estadoJuego.ventanaMatch = true; 
                 jugadorTurno.cartaEnMano = null;
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
 
-            // --- NUEVA ACCIÓN: MATCH RÁPIDO ---
             if (accion === 'MATCH_RAPIDO') {
                 const { idJugador, indiceCarta } = datosExtra;
                 let jugadorMatch = estadoJuego.jugadores.find(j => j.id === idJugador);
                 
                 if (estadoJuego.ventanaMatch && jugadorMatch && jugadorMatch.cartas[indiceCarta]) {
                     if (jugadorMatch.cartas[indiceCarta].valor === estadoJuego.cartaCentro.valor) {
-                        
-                        // Eliminar la carta del jugador
                         jugadorMatch.cartas.splice(indiceCarta, 1);
-                        
-                        // El turno SALTA al jugador que le sigue
                         const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === idJugador);
                         estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
                         
-                        // Reseteamos estados
                         estadoJuego.estadoTurno = 'NORMAL';
                         estadoJuego.ventanaMatch = false; 
                         if(jugadorMatch.cartaEnMano) jugadorMatch.cartaEnMano = null; 
-                        
                     } else {
-                        // PENALIDAD: Match fallido, suma una carta.
                         mostrarNotificacion(`¡Match fallido de ${jugadorMatch.nombre}! Penalidad.`);
                         if (estadoJuego.mazo.length > 0) {
                             jugadorMatch.cartas.push(estadoJuego.mazo.pop());
@@ -528,8 +523,6 @@
             if (estadoJuego.fase === 'Jugando') {
                 let terminoPorCabo = (estadoJuego.rondaFinal && estadoJuego.jugadores[estadoJuego.turnoActual].id === estadoJuego.cantoCaboId);
                 let terminoPorMazo = (estadoJuego.mazo.length === 0);
-
-                // También termina si alguien se queda sin cartas (por Match Rápido exitoso)
                 let alguienSinCartas = estadoJuego.jugadores.some(j => j.cartas.length === 0);
 
                 if (terminoPorCabo || terminoPorMazo || alguienSinCartas) {
@@ -609,7 +602,6 @@
             if (estadoJuego.partidaTerminada) {
                 titulo.innerText = "¡PARTIDA TERMINADA!";
                 sub.innerText = "Alguien alcanzó o superó los 100 puntos";
-                
                 btnSiguiente.style.display = 'none';
                 
                 let jugadoresOrdenados = [...estadoJuego.jugadores].sort((a, b) => a.puntajeTotal - b.puntajeTotal);
@@ -625,7 +617,6 @@
             } else {
                 titulo.innerText = "Fin de la Ronda " + estadoJuego.rondaActual;
                 sub.innerText = "Acumulando puntos...";
-                
                 btnSiguiente.style.display = 'block';
                 
                 if (!esAnfitrion) {
@@ -665,6 +656,14 @@
                 btnCabo.style.display = 'block';
             } else {
                 btnCabo.style.display = 'none';
+            }
+
+            // ALERTA VISUAL GLOBAL DE MATCH
+            const alertaMatch = document.getElementById('alerta-match');
+            if (estadoJuego.ventanaMatch && !estadoJuego.rondaFinal) {
+                alertaMatch.style.display = 'block';
+            } else {
+                alertaMatch.style.display = 'none';
             }
 
             const ind = document.getElementById('indicador-turno');
@@ -713,7 +712,9 @@
                 divCentro.innerText = estadoJuego.cartaCentro.valor;
                 divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 
-                // Efecto visual si la ventana de Match está abierta
+                // FIX FONDO BLANCO: Volver a forzar el color blanco
+                divCentro.style.background = "#ffffff";
+                
                 if (estadoJuego.ventanaMatch && estadoJuego.estadoTurno !== 'ESPERANDO') {
                     divCentro.classList.add('carta-match');
                 } else {
@@ -727,6 +728,7 @@
                 divCentro.className = `carta-juego`;
                 divCentro.style.border = "2px dashed #444";
                 divCentro.style.background = "transparent";
+                divCentro.classList.remove('carta-match');
             }
 
             // 3. Mazo
@@ -734,10 +736,12 @@
             if (esMiTurno && yo.cartaEnMano) {
                 mazo.className = `carta-juego ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 mazo.innerText = yo.cartaEnMano.valor;
+                mazo.style.background = "#ffffff";
                 mazo.style.cursor = "default";
             } else {
                 mazo.className = 'carta-juego carta-oculta';
                 mazo.innerText = '?';
+                mazo.style.background = ""; // Permite que el gradiente funcione
                 mazo.style.cursor = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
             }
 
@@ -774,7 +778,6 @@
                     estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer;';
                 }
                 
-                // Resaltar para posible Match
                 const estoyUsandoPoder = esMiTurno && estadoJuego.estadoTurno !== 'NORMAL';
                 if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder) {
                     estiloExtra = 'border: 3px dashed #3498db; cursor: pointer; box-shadow: 0 0 10px #3498db;';
@@ -814,8 +817,8 @@
             const cIzq = document.getElementById('mi-carta-2');
             const cDer = document.getElementById('mi-carta-3');
             if(!cIzq || !cDer) return;
-            const revelar = (el) => { el.className = `carta-juego mi-carta-interactiva ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; el.innerText = el.dataset.valor; };
-            const tapar = (el) => { el.className = 'carta-juego carta-oculta mi-carta-interactiva'; el.innerText = '?'; };
+            const revelar = (el) => { el.className = `carta-juego mi-carta-interactiva ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; el.innerText = el.dataset.valor; el.style.background = "#ffffff"; };
+            const tapar = (el) => { el.className = 'carta-juego carta-oculta mi-carta-interactiva'; el.innerText = '?'; el.style.background = ""; };
             revelar(cIzq); revelar(cDer);
             setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
         });
@@ -905,7 +908,6 @@
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             const indice = parseInt(cartaInteractiva.dataset.indice);
 
-            // MATCH RÁPIDO (Se evalúa antes que los turnos normales)
             const soyElDelTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
             const estoyUsandoPoder = soyElDelTurno && estadoJuego.estadoTurno !== 'NORMAL';
             
@@ -915,7 +917,6 @@
                 return; 
             }
 
-            // Flujo normal de turno
             if (!yo || !soyElDelTurno) return; 
             
             if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') {
@@ -926,6 +927,7 @@
                 const valor = cartaInteractiva.dataset.valor;
                 cartaInteractiva.className = `carta-juego mi-carta-interactiva ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 cartaInteractiva.innerText = valor;
+                cartaInteractiva.style.background = "#ffffff";
                 cartaInteractiva.style.border = '2px solid #fff';
 
                 let tiempo = 3;
@@ -938,6 +940,7 @@
                     clearInterval(conteo);
                     cartaInteractiva.className = 'carta-juego carta-oculta mi-carta-interactiva';
                     cartaInteractiva.innerText = '?';
+                    cartaInteractiva.style.background = "";
 
                     if (estadoAnterior === 'PODER_MIRAR_PROPIA') {
                         if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');

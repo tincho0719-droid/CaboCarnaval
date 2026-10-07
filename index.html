@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cabo P2P - Edición Minimalista</title>
+    <title>Cabo P2P - Edición Completa</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <style>
         :root {
@@ -77,6 +77,10 @@
         .oponente-nombre { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
         .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
         .minicarta { width: 20px; height: 30px; background: #2980b9; border-radius: 3px; }
+        
+        /* FIX: Asegura que el texto se vea al espiar la minicarta del rival */
+        .minicarta.carta-juego { font-size: 16px !important; border-width: 1px !important; color: var(--text-color); }
+
         .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
         
         .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; margin-top: auto; }
@@ -149,12 +153,21 @@
             <div class="zona-jugador">
                 <div class="grilla-cartas" id="mis-cartas-html"></div>
                 <button id="btn-ver-cartas" style="display: none; margin: 5px 0;">Ver cartas inferiores (3s)</button>
+                <button id="btn-cantar-cabo" style="display: none; margin: 5px 0; background-color: #8e44ad; color: white;">¡CANTAR CABO!</button>
             </div>
         </div>
     </div>
 
+    <!-- NUEVA PANTALLA DE RESULTADOS -->
+    <div id="pantalla-resultados" class="pantalla">
+        <h1>Fin de la Ronda</h1>
+        <div class="sub">Recuento de puntos</div>
+        <div id="lista-resultados" style="background: var(--surface-color); border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: left;"></div>
+        <button class="btn-volver" id="btn-volver-lobby">Volver al Lobby</button>
+    </div>
+
     <script>
-      // --- NOTIFICACIONES ---
+        // --- NOTIFICACIONES ---
         function mostrarNotificacion(mensaje) {
             const contenedor = document.getElementById('contenedor-notificaciones');
             const noti = document.createElement('div');
@@ -212,7 +225,11 @@
         // --- GLOBALES ---
         let peer = null, miIdPeer = '', miNombre = '', esAnfitrion = false, codigoSalaGlobal = '';
         let conexionesAnfitrion = [], conexionAlAnfitrion = null; 
-        let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby', estadoTurno: 'NORMAL', poderData: {} };
+        let estadoJuego = { 
+            jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, 
+            fase: 'Lobby', estadoTurno: 'NORMAL', poderData: {},
+            cantoCaboId: null, rondaFinal: false // Agregados para el fin de juego
+        };
 
         // --- UI ---
         const pInicio = document.getElementById('pantalla-inicio');
@@ -220,6 +237,7 @@
         const pUnirse = document.getElementById('pantalla-unirse');
         const pLobby = document.getElementById('pantalla-lobby');
         const pJuego = document.getElementById('pantalla-juego');
+        const pResultados = document.getElementById('pantalla-resultados');
 
         function cambiarPantalla(pantalla) {
             document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
@@ -228,7 +246,16 @@
 
         document.getElementById('btn-ir-crear').addEventListener('click', () => cambiarPantalla(pCrear));
         document.getElementById('btn-ir-unirse').addEventListener('click', () => cambiarPantalla(pUnirse));
-        document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => cambiarPantalla(pInicio)));
+        document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => {
+            if(btn.id === 'btn-volver-lobby') {
+                estadoJuego.fase = 'Lobby';
+                estadoJuego.jugadores.forEach(j => { j.listo = false; j.cartas = []; });
+                if (esAnfitrion) enviarEstadoATodos();
+                cambiarPantalla(pLobby);
+            } else {
+                cambiarPantalla(pInicio);
+            }
+        }));
 
         document.getElementById('btn-confirmar-crear').addEventListener('click', () => {
             miNombre = document.getElementById('input-nombre-crear').value.trim();
@@ -309,8 +336,11 @@
         function iniciarPartidaMatematica() {
             estadoJuego.fase = 'Jugando';
             estadoJuego.mazo = generarMazoCabo();
+            estadoJuego.cantoCaboId = null;
+            estadoJuego.rondaFinal = false;
             estadoJuego.jugadores.forEach(j => {
                 j.cartas = [estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop()];
+                j.puntajeFinal = 0;
             });
             estadoJuego.cartaCentro = estadoJuego.mazo.pop();
             estadoJuego.turnoActual = 0;
@@ -326,6 +356,11 @@
             if (accion === 'ROBAR_MAZO') {
                 if (estadoJuego.mazo.length === 0) return mostrarNotificacion("¡Se agotó el mazo!");
                 jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
+            }
+
+            if (accion === 'ROBAR_CENTRO') {
+                jugadorTurno.cartaEnMano = estadoJuego.cartaCentro;
+                estadoJuego.cartaCentro = { valor: '', color: 'Negro', puntos: 0, poder: 'Ninguno' }; // Centro vacío temporal
             }
             
             if (accion === 'DESCARTAR') {
@@ -367,7 +402,14 @@
                 jugadorTurno.cartas[indice] = jugadorTurno.cartaEnMano;
                 estadoJuego.cartaCentro = cartaReemplazada;
                 jugadorTurno.cartaEnMano = null;
+                // No se activa poder oficial al cambiar. Turno pasa.
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+            }
+
+            if (accion === 'CANTAR_CABO') {
+                estadoJuego.cantoCaboId = peerId;
+                estadoJuego.rondaFinal = true;
+                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
             }
 
             if (accion === 'EJECUTAR_PODER') {
@@ -423,8 +465,34 @@
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
 
+            // --- LÓGICA DE FIN DE PARTIDA ---
+            if (estadoJuego.fase === 'Jugando') {
+                let terminoPorCabo = (estadoJuego.rondaFinal && estadoJuego.jugadores[estadoJuego.turnoActual].id === estadoJuego.cantoCaboId);
+                let terminoPorMazo = (estadoJuego.mazo.length === 0);
+
+                if (terminoPorCabo || terminoPorMazo) {
+                    estadoJuego.fase = 'Resultados';
+                    
+                    // Sumar puntos
+                    estadoJuego.jugadores.forEach(j => {
+                        let suma = j.cartas.reduce((total, c) => total + c.puntos, 0);
+                        j.puntajeFinal = suma;
+                    });
+
+                    // Regla de penalidad: El que cantó Cabo debe tener puntaje menor o igual que el resto
+                    if (estadoJuego.cantoCaboId) {
+                        let jugadorCabo = estadoJuego.jugadores.find(j => j.id === estadoJuego.cantoCaboId);
+                        let esElMenor = estadoJuego.jugadores.every(j => j.id === jugadorCabo.id || j.puntajeFinal >= jugadorCabo.puntajeFinal);
+                        if (!esElMenor) {
+                            jugadorCabo.puntajeFinal += 10;
+                        }
+                    }
+                }
+            }
+
             enviarEstadoATodos();
-            if (esAnfitrion) renderizarMesaDinamica(); 
+            if (estadoJuego.fase === 'Jugando' && esAnfitrion) renderizarMesaDinamica();
+            if (estadoJuego.fase === 'Resultados' && esAnfitrion) mostrarPantallaResultados();
         }
 
         function enviarEstadoATodos() { conexionesAnfitrion.forEach(conn => conn.send({ type: 'SINCRO', estado: estadoJuego })); }
@@ -441,6 +509,7 @@
                 if (estadoJuego.fase === 'Lobby') actualizarLobbyUI();
                 else if (estadoJuego.fase === 'Jugando' && !pJuego.classList.contains('activa')) comenzarJuegoUI();
                 else if (estadoJuego.fase === 'Jugando') renderizarMesaDinamica();
+                else if (estadoJuego.fase === 'Resultados') mostrarPantallaResultados();
             }
         }
 
@@ -451,12 +520,32 @@
                 const est = j.listo ? '<span class="estado-listo">Listo</span>' : '<span class="estado-espera">Pensando...</span>';
                 divLista.innerHTML += `<div class="jugador-item"><span>${j.nombre}</span> ${est}</div>`;
             });
+            // Habilitar botón listo de nuevo al volver al lobby
+            document.getElementById('btn-listo').disabled = false;
+            document.getElementById('btn-listo').innerText = "¡Estoy Listo!";
         }
 
         function comenzarJuegoUI() {
             cambiarPantalla(pJuego);
             renderizarMesaDinamica();
             document.getElementById('btn-ver-cartas').style.display = 'block';
+        }
+
+        function mostrarPantallaResultados() {
+            cambiarPantalla(pResultados);
+            const divRes = document.getElementById('lista-resultados');
+            divRes.innerHTML = '';
+            
+            // Ordenar por el que tenga menos puntos
+            let jugadoresOrdenados = [...estadoJuego.jugadores].sort((a, b) => a.puntajeFinal - b.puntajeFinal);
+            
+            jugadoresOrdenados.forEach((j, i) => {
+                let esCabo = j.id === estadoJuego.cantoCaboId ? " <span style='color: #8e44ad;'>📢 (Cantó Cabo)</span>" : "";
+                let corona = i === 0 ? "🏆 " : "";
+                divRes.innerHTML += `<div style="font-size: 18px; padding: 12px 0; border-bottom: 1px solid #333;">
+                    ${corona}<strong>${j.nombre}</strong>: <span style="color: var(--accent-color);">${j.puntajeFinal} pts</span> ${esCabo}
+                </div>`;
+            });
         }
 
         function obtenerJugadorLocal() {
@@ -468,6 +557,8 @@
             if (!yo) return; 
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
+
+            document.getElementById('btn-cantar-cabo').style.display = 'none';
 
             // 1. Textos y UI de Decisiones
             const ind = document.getElementById('indicador-turno');
@@ -490,20 +581,36 @@
                     ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
                     ind.style.color = "#f39c12"; 
                 } else {
-                    ind.innerText = "¡ES TU TURNO! TOCA EL MAZO PARA ROBAR";
+                    ind.innerText = "¡ES TU TURNO! TOCA EL MAZO O EL CENTRO PARA ROBAR";
                     ind.style.color = "#2ecc71";
+                    
+                    // Mostrar botón cantar Cabo si corresponde
+                    if (estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal) {
+                        document.getElementById('btn-cantar-cabo').style.display = 'block';
+                    }
                 }
             } else {
                 ind.innerText = `Turno de: ${turnoJugador.nombre}`;
                 ind.style.color = "#f1c40f";
             }
 
+            if (estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') {
+                ind.innerText = "¡ÚLTIMA RONDA! " + ind.innerText;
+            }
+
             // 2. Centro
             const divCentro = document.getElementById('carta-centro');
-            divCentro.innerText = estadoJuego.cartaCentro.valor;
-            divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-            divCentro.style.border = (esMiTurno && yo.cartaEnMano) ? "3px dashed #2ecc71" : "2px solid #fff";
-            divCentro.style.cursor = (esMiTurno && yo.cartaEnMano) ? "pointer" : "default";
+            if (estadoJuego.cartaCentro && estadoJuego.cartaCentro.valor !== '') {
+                divCentro.innerText = estadoJuego.cartaCentro.valor;
+                divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                divCentro.style.border = (esMiTurno && yo.cartaEnMano) ? "3px dashed #2ecc71" : "2px solid #fff";
+                divCentro.style.cursor = (esMiTurno && yo.cartaEnMano) ? "pointer" : (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
+            } else {
+                divCentro.innerText = '';
+                divCentro.className = `carta-juego`;
+                divCentro.style.border = "2px dashed #444";
+                divCentro.style.background = "transparent";
+            }
 
             // 3. Mazo
             const mazo = document.getElementById('mazo-robar');
@@ -564,11 +671,12 @@
                 else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'DECISION_SUP', datos: { cambiar: true } } });
             } else if (e.target.id === 'btn-sup-no') {
                 if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'DECISION_SUP', datos: { cambiar: false } });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { type: 'DECISION_SUP', datos: { cambiar: false } } });
+                // FIX: Error de tipeo (type -> tipo) corregido aquí:
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'DECISION_SUP', datos: { cambiar: false } } });
             }
         });
 
-        // --- INTERACCIONES ---
+        // --- INTERACCIONES BÁSICAS ---
         document.getElementById('btn-ver-cartas').addEventListener('click', () => {
             const btn = document.getElementById('btn-ver-cartas');
             btn.style.display = 'none';
@@ -579,6 +687,11 @@
             const tapar = (el) => { el.className = 'carta-juego carta-oculta mi-carta-interactiva'; el.innerText = '?'; };
             revelar(cIzq); revelar(cDer);
             setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
+        });
+
+        document.getElementById('btn-cantar-cabo').addEventListener('click', () => {
+            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CANTAR_CABO');
+            else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CANTAR_CABO' });
         });
 
         document.getElementById('mazo-robar').addEventListener('click', () => {
@@ -592,9 +705,16 @@
         document.getElementById('carta-centro').addEventListener('click', () => {
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || !yo.cartaEnMano) return;
-            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
-            else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
+            
+            if (yo.cartaEnMano) {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
+            } 
+            else if (estadoJuego.estadoTurno === 'NORMAL' && estadoJuego.cartaCentro && estadoJuego.cartaCentro.valor !== '') {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'ROBAR_CENTRO');
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'ROBAR_CENTRO' });
+            }
         });
 
         // --- CLIC EN CARTAS DE RIVALES ---

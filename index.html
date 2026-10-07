@@ -174,20 +174,29 @@
                 this.id = Math.random().toString(36).substr(2, 5);
             }
         }
+
+        function asignarPoder(valor, color) {
+            if (valor === '7' || valor === '8') return 'MIRAR_PROPIA';
+            if (valor === '9' || valor === '10') return 'ESPIAR_RIVAL';
+            if (valor === 'J' || valor === 'Q') return 'INTERCAMBIAR';
+            if (valor === 'K' && color === 'Negro') return 'ESPIAR_INTERCAMBIAR';
+            return 'Ninguno';
+        }
+
         function generarMazoCabo() {
             let mazo = [];
             const valores = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
             for (let m = 0; m < 2; m++) {
                 valores.forEach(v => {
                     for(let r=0; r<2; r++) {
-                        let pts = parseInt(v);
-                        if(v==='A') pts=1; if(v==='J') pts=1; if(v==='Q') pts=12; if(v==='K') pts=-1;
-                        mazo.push(new Carta(v, 'Rojo', pts, 'Ninguno'));
+                        let pts = parseInt(v) || 0;
+                        if(v==='A') pts=1; if(v==='J') pts=11; if(v==='Q') pts=12; if(v==='K') pts=-1;
+                        mazo.push(new Carta(v, 'Rojo', pts, asignarPoder(v, 'Rojo')));
                     }
                     for(let n=0; n<2; n++) {
-                        let pts = parseInt(v);
+                        let pts = parseInt(v) || 0;
                         if(v==='A') pts=1; if(v==='J') pts=11; if(v==='Q') pts=12; if(v==='K') pts=13;
-                        mazo.push(new Carta(v, 'Negro', pts, 'Ninguno'));
+                        mazo.push(new Carta(v, 'Negro', pts, asignarPoder(v, 'Negro')));
                     }
                 });
                 mazo.push(new Carta('JK', 'Rojo', 0, 'Ninguno'));
@@ -203,7 +212,8 @@
         // --- GLOBALES ---
         let peer = null, miIdPeer = '', miNombre = '', esAnfitrion = false, codigoSalaGlobal = '';
         let conexionesAnfitrion = [], conexionAlAnfitrion = null; 
-        let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby' };
+        // Agregamos 'estadoTurno' para manejar los poderes
+        let estadoJuego = { jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, fase: 'Lobby', estadoTurno: 'NORMAL' };
 
         // --- UI ---
         const pInicio = document.getElementById('pantalla-inicio');
@@ -305,18 +315,31 @@
             });
             estadoJuego.cartaCentro = estadoJuego.mazo.pop();
             estadoJuego.turnoActual = 0;
+            estadoJuego.estadoTurno = 'NORMAL';
             enviarEstadoATodos();
             comenzarJuegoUI();
         }
 
         function procesarAccionLocal(peerId, accion, datosExtra = null) {
             let jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (accion === 'ROBAR_MAZO') jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
+            
+            if (accion === 'ROBAR_MAZO') {
+                jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
+            }
+            
             if (accion === 'DESCARTAR') {
                 estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
+                let poderActivado = jugadorTurno.cartaEnMano.poder;
                 jugadorTurno.cartaEnMano = null;
-                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+
+                // Verificamos si la carta tiene poder de mirar
+                if (poderActivado === 'MIRAR_PROPIA') {
+                    estadoJuego.estadoTurno = 'PODER_MIRAR_PROPIA';
+                } else {
+                    estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+                }
             }
+            
             if (accion === 'CAMBIAR') {
                 const indice = datosExtra; 
                 const cartaReemplazada = jugadorTurno.cartas[indice];
@@ -325,6 +348,13 @@
                 jugadorTurno.cartaEnMano = null;
                 estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
             }
+
+            // Esta acción se recibe cuando el jugador terminó de ver su carta
+            if (accion === 'FIN_TURNO') {
+                estadoJuego.estadoTurno = 'NORMAL';
+                estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length; 
+            }
+
             enviarEstadoATodos();
             if (esAnfitrion) renderizarMesaDinamica(); 
         }
@@ -374,7 +404,10 @@
             // 1. Textos
             const ind = document.getElementById('indicador-turno');
             if (esMiTurno) {
-                if (yo.cartaEnMano) {
+                if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
+                    ind.innerText = "¡PODER ACTIVADO! TOCA UNA DE TUS CARTAS PARA VERLA";
+                    ind.style.color = "#9b59b6"; // Color púrpura para indicar magia/poder
+                } else if (yo.cartaEnMano) {
                     ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
                     ind.style.color = "#f39c12"; 
                 } else {
@@ -402,7 +435,7 @@
             } else {
                 mazo.className = 'carta-juego carta-oculta';
                 mazo.innerText = '?';
-                mazo.style.cursor = (esMiTurno && !yo.cartaEnMano) ? "pointer" : "default";
+                mazo.style.cursor = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
             }
 
             // 4. Oponentes
@@ -426,7 +459,10 @@
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
-                let estiloExtra = (esMiTurno && yo.cartaEnMano) ? 'border: 3px dashed #f39c12; cursor: pointer;' : '';
+                let estiloExtra = '';
+                if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') estiloExtra = 'border: 3px dashed #f39c12; cursor: pointer;';
+                if (esMiTurno && estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') estiloExtra = 'border: 3px dashed #9b59b6; cursor: pointer; animation: pulse 1.5s infinite;';
+                
                 miGrilla.innerHTML += `
                     <div class="carta-juego carta-oculta mi-carta-interactiva" 
                          id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
@@ -451,7 +487,7 @@
         document.getElementById('mazo-robar').addEventListener('click', () => {
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || yo.cartaEnMano) return;
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || yo.cartaEnMano || estadoJuego.estadoTurno !== 'NORMAL') return;
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'ROBAR_MAZO');
             else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'ROBAR_MAZO' });
         });
@@ -469,10 +505,37 @@
             if (!cartaInteractiva) return; 
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || !yo.cartaEnMano) return; 
-            const indexSeleccionado = parseInt(cartaInteractiva.dataset.indice);
-            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);
-            else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indexSeleccionado });
+            const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
+            if (!yo || !esMiTurno) return; 
+            
+            // Lógica si estoy usando el PODER de ver carta
+            if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') {
+                // Dar vuelta localmente
+                cartaInteractiva.classList.remove('carta-oculta');
+                cartaInteractiva.classList.add(cartaInteractiva.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra');
+                cartaInteractiva.innerText = cartaInteractiva.dataset.valor;
+                
+                // Evitamos que cliquee otra mientras espera
+                estadoJuego.estadoTurno = 'ESPERANDO'; 
+                renderizarMesaDinamica(); 
+
+                // A los 3 segundos la tapamos y pasamos el turno
+                setTimeout(() => {
+                    cartaInteractiva.classList.add('carta-oculta');
+                    cartaInteractiva.classList.remove('carta-roja', 'carta-negra');
+                    cartaInteractiva.innerText = '?';
+                    if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
+                    else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
+                }, 3000);
+                return;
+            }
+
+            // Lógica de CAMBIAR carta normal
+            if (yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') {
+                const indexSeleccionado = parseInt(cartaInteractiva.dataset.indice);
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indexSeleccionado);
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indexSeleccionado });
+            }
         });
     </script>
 </body>

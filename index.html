@@ -12,7 +12,7 @@
             --accent-color: #f39c12;
             --text-color: #e0e0e0;
             --rojo-carta: #e74c3c;
-            --negro-carta: #ffffff;
+            --negro-carta: #121212; /* Ajuste para mayor contraste en fondo blanco */
         }
 
         body { 
@@ -99,7 +99,7 @@
             background-size: 20px 20px; color: transparent !important; border: 2px solid #fff;
         }
         .carta-roja { color: var(--rojo-carta); }
-        .carta-negra { color: #121212; }
+        .carta-negra { color: var(--negro-carta); }
 
         /* ANIMACIÓN MATCH RÁPIDO */
         @keyframes titilar { 0% { box-shadow: 0 0 5px #3498db; } 50% { box-shadow: 0 0 20px #3498db; } 100% { box-shadow: 0 0 5px #3498db; } }
@@ -712,8 +712,9 @@
                 divCentro.innerText = estadoJuego.cartaCentro.valor;
                 divCentro.className = `carta-juego ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 
-                // FIX FONDO BLANCO: Volver a forzar el color blanco
-                divCentro.style.background = "#ffffff";
+                // FIX FONDO BLANCO: Forzar color blanco y limpiar imagen de fondo oculto
+                divCentro.style.backgroundColor = "#ffffff";
+                divCentro.style.backgroundImage = "none";
                 
                 if (estadoJuego.ventanaMatch && estadoJuego.estadoTurno !== 'ESPERANDO') {
                     divCentro.classList.add('carta-match');
@@ -727,7 +728,8 @@
                 divCentro.innerText = '';
                 divCentro.className = `carta-juego`;
                 divCentro.style.border = "2px dashed #444";
-                divCentro.style.background = "transparent";
+                divCentro.style.backgroundColor = "transparent";
+                divCentro.style.backgroundImage = "none";
                 divCentro.classList.remove('carta-match');
             }
 
@@ -736,12 +738,14 @@
             if (esMiTurno && yo.cartaEnMano) {
                 mazo.className = `carta-juego ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 mazo.innerText = yo.cartaEnMano.valor;
-                mazo.style.background = "#ffffff";
+                mazo.style.backgroundColor = "#ffffff";
+                mazo.style.backgroundImage = "none";
                 mazo.style.cursor = "default";
             } else {
                 mazo.className = 'carta-juego carta-oculta';
                 mazo.innerText = '?';
-                mazo.style.background = ""; // Permite que el gradiente funcione
+                mazo.style.backgroundColor = ""; // Permite el gradiente
+                mazo.style.backgroundImage = "";
                 mazo.style.cursor = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') ? "pointer" : "default";
             }
 
@@ -817,8 +821,21 @@
             const cIzq = document.getElementById('mi-carta-2');
             const cDer = document.getElementById('mi-carta-3');
             if(!cIzq || !cDer) return;
-            const revelar = (el) => { el.className = `carta-juego mi-carta-interactiva ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; el.innerText = el.dataset.valor; el.style.background = "#ffffff"; };
-            const tapar = (el) => { el.className = 'carta-juego carta-oculta mi-carta-interactiva'; el.innerText = '?'; el.style.background = ""; };
+            
+            // FIX FONDO BLANCO EN INICIO
+            const revelar = (el) => { 
+                el.className = `carta-juego mi-carta-interactiva ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; 
+                el.innerText = el.dataset.valor; 
+                el.style.backgroundColor = "#ffffff";
+                el.style.backgroundImage = "none";
+            };
+            const tapar = (el) => { 
+                el.className = 'carta-juego carta-oculta mi-carta-interactiva'; 
+                el.innerText = '?'; 
+                el.style.backgroundColor = ""; 
+                el.style.backgroundImage = "";
+            };
+            
             revelar(cIzq); revelar(cDer);
             setTimeout(() => { tapar(cIzq); tapar(cDer); }, 3000);
         });
@@ -872,6 +889,10 @@
                 const valor = cartaInteractiva.dataset.valor;
                 cartaInteractiva.className = `minicarta carta-juego ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 cartaInteractiva.innerText = valor;
+                
+                // FIX FONDO BLANCO EN RIVALES
+                cartaInteractiva.style.backgroundColor = "#ffffff";
+                cartaInteractiva.style.backgroundImage = "none";
                 cartaInteractiva.style.border = '2px solid #fff';
 
                 let tiempo = 3;
@@ -883,6 +904,11 @@
                     clearInterval(conteo);
                     cartaInteractiva.className = 'minicarta carta-juego carta-oculta carta-oponente-interactiva';
                     cartaInteractiva.innerText = '?';
+                    
+                    // Limpieza
+                    cartaInteractiva.style.backgroundColor = "";
+                    cartaInteractiva.style.backgroundImage = "";
+                    cartaInteractiva.style.border = "";
                     
                     if (estadoAnterior === 'PODER_ESPIAR_RIVAL') {
                         if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
@@ -927,7 +953,10 @@
                 const valor = cartaInteractiva.dataset.valor;
                 cartaInteractiva.className = `carta-juego mi-carta-interactiva ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 cartaInteractiva.innerText = valor;
-                cartaInteractiva.style.background = "#ffffff";
+                
+                // FIX FONDO BLANCO PROPIAS
+                cartaInteractiva.style.backgroundColor = "#ffffff";
+                cartaInteractiva.style.backgroundImage = "none";
                 cartaInteractiva.style.border = '2px solid #fff';
 
                 let tiempo = 3;
@@ -940,7 +969,11 @@
                     clearInterval(conteo);
                     cartaInteractiva.className = 'carta-juego carta-oculta mi-carta-interactiva';
                     cartaInteractiva.innerText = '?';
-                    cartaInteractiva.style.background = "";
+                    
+                    // Limpieza
+                    cartaInteractiva.style.backgroundColor = "";
+                    cartaInteractiva.style.backgroundImage = "";
+                    cartaInteractiva.style.border = "";
 
                     if (estadoAnterior === 'PODER_MIRAR_PROPIA') {
                         if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');

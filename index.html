@@ -96,7 +96,7 @@
         
         .minicarta.carta-juego { font-size: 16px !important; }
 
-        /* --- CLASES DE REVELADO (A PRUEBA DE FALLOS CSS) --- */
+        /* --- CLASES DE REVELADO --- */
         .carta-oculta { 
             background: linear-gradient(135deg, #2c3e50 25%, #34495e 25%, #34495e 50%, #2c3e50 50%, #2c3e50 75%, #34495e 75%, #34495e 100%) !important;
             background-size: 20px 20px !important; color: transparent !important; border: 2px solid #fff;
@@ -154,7 +154,7 @@
     <div id="pantalla-juego" class="pantalla" style="max-width: 100%;">
         <div class="mesa-tablero">
             <div id="indicador-turno">Conectando sincronización...</div>
-            <div id="alerta-match">⚡ ¡MATCH RÁPIDO ABIERTO! Toca tu carta ⚡</div>
+            <div id="alerta-match">⚡ ¡MATCH RÁPIDO ABIERTO! Toca la carta ⚡</div>
             <div id="zona-oponentes"></div>
             
             <div class="centro-mesa">
@@ -166,6 +166,7 @@
                 <div class="grilla-cartas" id="mis-cartas-html"></div>
                 <button id="btn-ver-cartas" style="display: none; margin: 5px 0;">Ver cartas inferiores (3s)</button>
                 <button id="btn-cantar-cabo" style="display: none; margin: 5px 0; background-color: #8e44ad; color: white;">¡CANTAR CABO!</button>
+                <button id="btn-ver-puntajes" style="display: none; margin: 5px 0; background-color: #27ae60; color: white;">Ver Puntajes</button>
             </div>
         </div>
     </div>
@@ -303,6 +304,10 @@
             if (esAnfitrion) procesarAccionLocal(miIdPeer, 'SIGUIENTE_RONDA');
         });
 
+        document.getElementById('btn-ver-puntajes').addEventListener('click', () => {
+            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'IR_A_RESULTADOS');
+        });
+
         // --- P2P ---
         function inicializarPeer(idFijo = null) {
             peer = idFijo ? new Peer(idFijo) : new Peer();
@@ -382,9 +387,10 @@
         }
 
         function finalizarRonda() {
-            estadoJuego.fase = 'Resultados';
+            estadoJuego.fase = 'FinRondaMesa';
+            estadoJuego.estadoTurno = 'FIN_RONDA_MESA';
             
-            // Revelamos absolutamente todas las cartas y sumamos
+            // Revelamos absolutamente todas las cartas y calculamos
             estadoJuego.jugadores.forEach(j => {
                 j.cartasVisibles = true;
                 j.puntajeRonda = j.cartas.reduce((total, c) => total + c.puntos, 0);
@@ -397,25 +403,18 @@
                 let cantidadMenores = estadoJuego.jugadores.filter(j => j.puntajeRonda === menorPuntaje).length;
 
                 if (jugadorCabo.puntajeRonda === menorPuntaje && cantidadMenores === 1) {
-                    jugadorCabo.puntajeRonda = 0; // Ganó con propiedad
+                    jugadorCabo.puntajeRonda = 0; // Ganó Cabo limpiamente
                 } else {
-                    jugadorCabo.puntajeRonda = 15 + (jugadorCabo.puntajeRonda - menorPuntaje); // Falló (empate o perdió)
+                    jugadorCabo.puntajeRonda = 15 + (jugadorCabo.puntajeRonda - menorPuntaje); // Penalidad oficial
                 }
             }
-
-            let algunPerdedor = false;
-            estadoJuego.jugadores.forEach(j => {
-                j.puntajeTotal += j.puntajeRonda;
-                if (j.puntajeTotal >= 100) algunPerdedor = true;
-            });
-            estadoJuego.partidaTerminada = algunPerdedor;
         }
 
         // --- SISTEMA CENTRALIZADO DE AVANCE DE TURNOS ---
         const avanzarTurno = () => {
             let jugadorActual = estadoJuego.jugadores[estadoJuego.turnoActual];
             
-            // Si alguien cantó Cabo, a medida que terminan sus turnos se dan vuelta sus cartas
+            // Si es ronda final, quien termina de jugar da vuelta sus cartas a la vista de todos
             if (estadoJuego.rondaFinal) {
                 jugadorActual.cartasVisibles = true; 
             }
@@ -435,6 +434,19 @@
             
             if (accion === 'SIGUIENTE_RONDA' && esAnfitrion) {
                 iniciarNuevaRonda();
+                return;
+            }
+
+            if (accion === 'IR_A_RESULTADOS' && esAnfitrion) {
+                estadoJuego.fase = 'Resultados';
+                let algunPerdedor = false;
+                estadoJuego.jugadores.forEach(j => {
+                    j.puntajeTotal += j.puntajeRonda;
+                    if (j.puntajeTotal >= 100) algunPerdedor = true;
+                });
+                estadoJuego.partidaTerminada = algunPerdedor;
+                enviarEstadoATodos();
+                mostrarPantallaResultados();
                 return;
             }
 
@@ -505,6 +517,7 @@
                 avanzarTurno(); 
             }
 
+            // --- MATCH RÁPIDO Y DAR CARTA AL RIVAL ---
             if (accion === 'MATCH_RAPIDO') {
                 const { idJugador, indiceCarta } = datosExtra;
                 let jugadorMatch = estadoJuego.jugadores.find(j => j.id === idJugador);
@@ -512,19 +525,16 @@
                 if (estadoJuego.ventanaMatch && jugadorMatch && jugadorMatch.cartas[indiceCarta]) {
                     if (jugadorMatch.cartas[indiceCarta].valor === estadoJuego.cartaCentro.valor) {
                         jugadorMatch.cartas.splice(indiceCarta, 1);
-                        
                         if (estadoJuego.rondaFinal) jugadorMatch.cartasVisibles = true;
 
                         estadoJuego.ventanaMatch = false; 
                         estadoJuego.estadoTurno = 'NORMAL';
                         if(jugadorMatch.cartaEnMano) jugadorMatch.cartaEnMano = null; 
 
-                        // El turno SALTA solo si el juego ya habia empezado
                         if (estadoJuego.fase === 'Jugando') {
                             const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === idJugador);
                             estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
                             
-                            // Verificar fin por match
                             let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
                             if ((estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId) || estadoJuego.jugadores.some(j => j.cartas.length === 0)) {
                                 finalizarRonda();
@@ -534,9 +544,59 @@
                         }
                     } else {
                         mostrarNotificacion(`¡Match fallido de ${jugadorMatch.nombre}! Penalidad.`);
-                        if (estadoJuego.mazo.length > 0) {
-                            jugadorMatch.cartas.push(estadoJuego.mazo.pop());
+                        if (estadoJuego.mazo.length > 0) jugadorMatch.cartas.push(estadoJuego.mazo.pop());
+                    }
+                }
+            }
+
+            if (accion === 'MATCH_RIVAL') {
+                const { idJugadorQueHaceMatch, targetId, targetIndice } = datosExtra;
+                let jugadorQueHaceMatch = estadoJuego.jugadores.find(j => j.id === idJugadorQueHaceMatch);
+                let jugadorTarget = estadoJuego.jugadores.find(j => j.id === targetId);
+
+                if (estadoJuego.ventanaMatch && jugadorTarget && jugadorTarget.cartas[targetIndice]) {
+                    if (jugadorTarget.cartas[targetIndice].valor === estadoJuego.cartaCentro.valor) {
+                        // Match exitoso a rival
+                        jugadorTarget.cartas.splice(targetIndice, 1);
+                        estadoJuego.ventanaMatch = false; 
+                        if(jugadorQueHaceMatch.cartaEnMano) jugadorQueHaceMatch.cartaEnMano = null;
+                        
+                        // Estado para obligar a dar una carta
+                        estadoJuego.estadoTurno = 'ESPERANDO_CARTA_MATCH_RIVAL';
+                        estadoJuego.poderData = {
+                            jugadorActivoMatchId: idJugadorQueHaceMatch,
+                            targetIdRecepcionista: targetId
+                        };
+                    } else {
+                        // Fallo
+                        mostrarNotificacion(`¡Match fallido de ${jugadorQueHaceMatch.nombre}! Penalidad.`);
+                        if (estadoJuego.mazo.length > 0) jugadorQueHaceMatch.cartas.push(estadoJuego.mazo.pop());
+                    }
+                }
+            }
+
+            if (accion === 'DAR_CARTA_MATCH') {
+                const { indiceCarta } = datosExtra;
+                let jugadorQueDa = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.jugadorActivoMatchId);
+                let jugadorQueRecibe = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.targetIdRecepcionista);
+
+                if (jugadorQueDa && jugadorQueRecibe && jugadorQueDa.cartas[indiceCarta]) {
+                    const cartaTransferida = jugadorQueDa.cartas.splice(indiceCarta, 1)[0];
+                    jugadorQueRecibe.cartas.push(cartaTransferida);
+
+                    estadoJuego.estadoTurno = 'NORMAL';
+                    estadoJuego.poderData = {};
+
+                    if (estadoJuego.fase === 'Jugando') {
+                        const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === jugadorQueDa.id);
+                        estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
+
+                        let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+                        if ((estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId) || estadoJuego.jugadores.some(j => j.cartas.length === 0)) {
+                            finalizarRonda();
                         }
+                    } else if (estadoJuego.fase === 'Preparacion') {
+                        if (estadoJuego.jugadores.some(j => j.cartas.length === 0)) finalizarRonda();
                     }
                 }
             }
@@ -544,7 +604,7 @@
             if (accion === 'CANTAR_CABO') {
                 estadoJuego.cantoCaboId = peerId;
                 estadoJuego.rondaFinal = true;
-                // El turno continúa para que el jugador haga su jugada final
+                // Sigue su turno para descartar o cambiar, no salta directamente
             }
 
             if (accion === 'EJECUTAR_PODER') {
@@ -597,7 +657,7 @@
             }
 
             enviarEstadoATodos();
-            if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion') && esAnfitrion) renderizarMesaDinamica();
+            if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'FinRondaMesa') && esAnfitrion) renderizarMesaDinamica();
             if (estadoJuego.fase === 'Resultados' && esAnfitrion) mostrarPantallaResultados();
         }
 
@@ -613,8 +673,8 @@
             if (data.type === 'SINCRO') {
                 estadoJuego = data.estado;
                 if (estadoJuego.fase === 'Lobby') actualizarLobbyUI();
-                else if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion') && !pJuego.classList.contains('activa')) comenzarJuegoUI();
-                else if (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion') renderizarMesaDinamica();
+                else if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'FinRondaMesa') && !pJuego.classList.contains('activa')) comenzarJuegoUI();
+                else if (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'FinRondaMesa') renderizarMesaDinamica();
                 else if (estadoJuego.fase === 'Resultados') mostrarPantallaResultados();
             }
         }
@@ -708,14 +768,33 @@
                 btnCabo.style.display = 'none';
             }
 
+            const btnVerPuntajes = document.getElementById('btn-ver-puntajes');
+            if (estadoJuego.fase === 'FinRondaMesa' && esAnfitrion) {
+                btnVerPuntajes.style.display = 'block';
+            } else {
+                btnVerPuntajes.style.display = 'none';
+            }
+
             const alertaMatch = document.getElementById('alerta-match');
-            if (estadoJuego.ventanaMatch && !estadoJuego.rondaFinal) alertaMatch.style.display = 'block';
+            if (estadoJuego.ventanaMatch && estadoJuego.fase !== 'FinRondaMesa') alertaMatch.style.display = 'block';
             else alertaMatch.style.display = 'none';
 
             const ind = document.getElementById('indicador-turno');
             
             // Textos descriptivos
-            if (estadoJuego.fase === 'Preparacion') {
+            if (estadoJuego.fase === 'FinRondaMesa') {
+                ind.innerText = "¡RONDA TERMINADA! Revisen las cartas en la mesa."; 
+                ind.style.color = "#2ecc71";
+            } else if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL') {
+                if (yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
+                    ind.innerText = "¡MATCH RIVAL EXITOSO! TOCA UNA CARTA TUYA PARA DÁRSELA";
+                    ind.style.color = "#3498db";
+                } else {
+                    let jDa = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.jugadorActivoMatchId);
+                    ind.innerText = `ESPERANDO QUE ${jDa ? jDa.nombre : 'EL JUGADOR'} ENTREGUE UNA CARTA...`;
+                    ind.style.color = "#888";
+                }
+            } else if (estadoJuego.fase === 'Preparacion') {
                 if (!yo.vioCartas) { ind.innerText = "TOCA EL BOTÓN PARA VER TUS CARTAS"; ind.style.color = "#f39c12"; } 
                 else { ind.innerText = "ESPERANDO A LOS DEMÁS JUGADORES..."; ind.style.color = "#888"; }
             } else if (esMiTurno) {
@@ -753,8 +832,7 @@
                 ind.style.color = "#f1c40f";
             }
 
-            // CORRECCIÓN DEL BUG VISUAL HTML APLICADO AQUÍ
-            if (estadoJuego.rondaFinal && (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion')) {
+            if (estadoJuego.rondaFinal && estadoJuego.fase !== 'FinRondaMesa') {
                 ind.innerHTML = `<div style="color: #e74c3c; font-weight: 900; font-size: 18px; margin-bottom: 5px; text-shadow: 0 0 5px #e74c3c;">¡ÚLTIMA RONDA!</div>` + ind.innerHTML;
             }
 
@@ -827,8 +905,12 @@
                 }
                 
                 const estoyUsandoPoder = esMiTurno && estadoJuego.estadoTurno !== 'NORMAL';
-                if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder) {
+                if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles && estadoJuego.fase !== 'FinRondaMesa') {
                     estiloExtra = 'border: 3px dashed #3498db !important; cursor: pointer; box-shadow: 0 0 10px #3498db;';
+                }
+
+                if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL' && yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
+                    estiloExtra = 'border: 3px dashed #3498db !important; cursor: pointer; animation: titilar 1s infinite;';
                 }
                 
                 if (yo.cartasVisibles) {
@@ -928,11 +1010,22 @@
             
             const yo = obtenerJugadorLocal();
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
-
             const targetId = cartaInteractiva.dataset.id;
             const targetJugIndice = parseInt(cartaInteractiva.dataset.jugIndex);
             const targetIndice = parseInt(cartaInteractiva.dataset.indice);
+
+            // MATCH RIVAL (Fuera de tu turno o en tu turno sin usar poder)
+            const soyElDelTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
+            const estoyApuntandoPoder = soyElDelTurno && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR');
+
+            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyApuntandoPoder && !yo.cartasVisibles) {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'MATCH_RIVAL', { idJugadorQueHaceMatch: yo.id, targetId: targetId, targetIndice: targetIndice });
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'MATCH_RIVAL', datosExtra: { idJugadorQueHaceMatch: yo.id, targetId: targetId, targetIndice: targetIndice } });
+                return;
+            }
+
+            // Normal power click
+            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
 
             if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') {
                 const estadoAnterior = estadoJuego.estadoTurno;
@@ -941,7 +1034,6 @@
                 const color = cartaInteractiva.dataset.color;
                 const valor = cartaInteractiva.dataset.valor;
                 
-                // Muestra la carta localmente con la clase segura
                 cartaInteractiva.className = `minicarta carta-juego carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 cartaInteractiva.innerText = valor;
 
@@ -979,11 +1071,18 @@
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
             const indice = parseInt(cartaInteractiva.dataset.indice);
 
+            // DAR CARTA AL RIVAL (Después de un Match Rival)
+            if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL' && yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
+                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DAR_CARTA_MATCH', { indiceCarta: indice });
+                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DAR_CARTA_MATCH', datosExtra: { indiceCarta: indice } });
+                return;
+            }
+
             const soyElDelTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
             const estoyUsandoPoder = soyElDelTurno && estadoJuego.estadoTurno !== 'NORMAL';
             
-            // MATCH RÁPIDO (Cualquier fase)
-            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles) {
+            // MATCH PROPIO RÁPIDO
+            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles && estadoJuego.estadoTurno !== 'ESPERANDO_CARTA_MATCH_RIVAL') {
                 if (esAnfitrion) procesarAccionLocal(miIdPeer, 'MATCH_RAPIDO', { idJugador: yo.id, indiceCarta: indice });
                 else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'MATCH_RAPIDO', datosExtra: { idJugador: yo.id, indiceCarta: indice } });
                 return; 

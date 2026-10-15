@@ -2,185 +2,259 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cabo P2P - Modo Profesional</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cabo Cloud - Edición Firebase</title>
+    <!-- SDK Oficial de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <style>
         :root {
-            --bg-color: #121212;
-            --surface-color: #1e1e1e;
+            --bg-color: #0f1115;
+            --surface-color: #181b22;
+            --surface-light: #222630;
             --accent-color: #f39c12;
-            --text-color: #e0e0e0;
-            --rojo-carta: #e74c3c;
-            --negro-carta: #121212;
+            --text-color: #f0f4f8;
+            --text-muted: #8b949e;
+            --rojo-carta: #e63946;
+            --negro-carta: #1d2127;
+            --verde: #2ecc71;
+            --azul: #3498db;
+            --morado: #9b59b6;
         }
 
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
         body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; 
             background-color: var(--bg-color); 
             color: var(--text-color); 
             text-align: center; 
             margin: 0; 
-            padding: 10px; 
+            padding: 12px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; 
             min-height: 100vh; 
-            box-sizing: border-box;
-            overflow-y: auto; 
+            overflow-x: hidden;
         }
 
         /* --- NOTIFICACIONES --- */
         #contenedor-notificaciones {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;
-            display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px;
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: 92%; max-width: 380px;
         }
         .notificacion-toast {
-            background-color: #2c3e50; color: #ffffff; padding: 12px 20px; border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center; font-weight: bold; font-size: 14px;
-            border-left: 4px solid var(--accent-color); animation: deslizarAbajo 0.3s ease-out forwards;
+            background-color: rgba(24, 27, 34, 0.95); color: #fff; padding: 12px 16px; border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6); font-weight: 600; font-size: 14px;
+            border-left: 4px solid var(--accent-color); backdrop-filter: blur(4px);
+            animation: slideIn 0.25s ease-out forwards;
         }
-        .notificacion-toast.fade-out { animation: desvanecer 0.3s ease-in forwards; }
-        @keyframes deslizarAbajo { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes desvanecer { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
+        @keyframes slideIn { from { transform: translateY(-15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* --- INTERFAZ GENERAL --- */
-        .pantalla { display: none; width: 100%; max-width: 500px; padding: 10px; box-sizing: border-box; }
+        /* --- PANTALLAS Y BOTONES --- */
+        .pantalla { display: none; width: 100%; max-width: 480px; padding: 10px; }
         .activa { display: block !important; }
-        h1 { color: var(--accent-color); letter-spacing: 3px; margin-bottom: 5px; font-size: 28px; }
-        .sub { color: #888; font-size: 14px; margin-bottom: 25px; }
-        input { padding: 14px; font-size: 16px; margin: 8px 0; width: 100%; border-radius: 8px; border: 1px solid #333; background: var(--surface-color); color: white; text-align: center; box-sizing: border-box; }
-        button { padding: 14px 24px; font-size: 16px; margin: 10px 0; width: 100%; cursor: pointer; background-color: var(--accent-color); color: #000; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
-        button:hover { background-color: #d68910; }
-        button:disabled { background-color: #444 !important; color: #888 !important; cursor: not-allowed; }
-        .btn-secundario { background-color: #333; color: white; border: 1px solid #444; }
-        .btn-secundario:hover { background-color: #444; }
+        h1 { color: var(--accent-color); letter-spacing: 2px; margin: 10px 0 4px 0; font-size: 32px; font-weight: 900; }
+        .sub { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+        
+        input { 
+            padding: 14px; font-size: 16px; margin: 8px 0; width: 100%; border-radius: 10px; 
+            border: 1px solid #30363d; background: var(--surface-color); color: white; text-align: center; 
+            outline: none; transition: border 0.2s;
+        }
+        input:focus { border-color: var(--accent-color); }
+        
+        button { 
+            padding: 14px 20px; font-size: 16px; margin: 8px 0; width: 100%; cursor: pointer; 
+            background-color: var(--accent-color); color: #0f1115; border: none; border-radius: 10px; 
+            font-weight: 700; transition: transform 0.1s, background-color 0.2s; 
+        }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled { background-color: #2c313c !important; color: #6e7681 !important; cursor: not-allowed; }
+        .btn-secundario { background-color: var(--surface-light); color: var(--text-color); border: 1px solid #30363d; }
 
         /* --- LOBBY --- */
-        .codigo-alerta { font-size: 24px; color: var(--accent-color); font-weight: bold; background: var(--surface-color); padding: 10px; border-radius: 8px; border: 1px dashed var(--accent-color); margin: 15px 0; }
-        .lista-jugadores { background: var(--surface-color); border-radius: 10px; padding: 5px 15px; margin: 15px 0; text-align: left; }
-        .jugador-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
+        .codigo-alerta { 
+            font-size: 28px; color: var(--accent-color); font-weight: 900; letter-spacing: 4px;
+            background: var(--surface-color); padding: 14px; border-radius: 12px; 
+            border: 2px dashed var(--accent-color); margin: 15px 0; user-select: all;
+        }
+        .lista-jugadores { background: var(--surface-color); border-radius: 12px; padding: 8px 16px; margin: 15px 0; text-align: left; border: 1px solid #262c36; }
+        .jugador-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #262c36; font-weight: 600; }
         .jugador-item:last-child { border: none; }
-        .estado-listo { color: #2ecc71; font-weight: bold; }
-        .estado-espera { color: #e74c3c; }
+        .estado-listo { color: var(--verde); font-size: 13px; background: rgba(46, 204, 113, 0.12); padding: 4px 10px; border-radius: 20px; }
+        .estado-espera { color: var(--accent-color); font-size: 13px; }
 
         /* --- MESA DE JUEGO --- */
         .mesa-tablero { 
-            width: 100%; max-width: 600px; margin: 0 auto; background-color: var(--surface-color); 
-            border-radius: 20px; border: 2px solid #2a2a2a; padding: 15px; box-sizing: border-box; 
-            display: flex; flex-direction: column; gap: 15px; justify-content: space-between; 
+            width: 100%; max-width: 560px; margin: 0 auto; background-color: var(--surface-color); 
+            border-radius: 20px; border: 1px solid #262c36; padding: 16px; 
+            display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        #indicador-turno { font-weight: bold; font-size: 16px; letter-spacing: 1px; min-height: 20px; }
-        #alerta-match { display: none; color: #3498db; font-weight: bold; font-size: 14px; animation: titilar 1.5s infinite; margin-top: 5px;}
-        
-        #zona-oponentes { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; width: 100%; }
-        .oponente-bloque { background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; text-align: center; min-width: 70px; }
-        .oponente-nombre { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
-        .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-        .minicarta { width: 20px; height: 30px; background: #2980b9; border-radius: 3px; }
-
-        .centro-mesa { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 10px 0; }
-        
-        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; margin-top: auto; }
-        .grilla-cartas { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 340px; justify-items: center; 
+        #indicador-turno { 
+            font-weight: 700; font-size: 15px; background: var(--surface-light); 
+            padding: 12px; border-radius: 12px; border: 1px solid #2d333f; min-height: 48px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px;
         }
-
+        
+        /* --- OPONENTES --- */
+        #zona-oponentes { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+        .oponente-bloque { 
+            background: var(--bg-color); padding: 10px; border-radius: 12px; border: 2px solid #262c36; 
+            text-align: center; min-width: 85px; transition: border-color 0.2s;
+        }
+        .oponente-activo { border-color: var(--accent-color); }
+        .oponente-nombre { font-size: 12px; font-weight: 700; color: var(--text-color); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+        .grilla-oponente { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; justify-items: center; }
+        
+        /* --- CARTAS --- */
         .carta-juego { 
-            width: 100%; max-width: 100px; aspect-ratio: 2.5 / 3.5; background-color: #ffffff; 
-            border-radius: 8px; display: flex; justify-content: center; align-items: center; 
-            font-weight: 800; font-size: 8vw; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.2s, box-shadow 0.2s; border: 2px solid #fff; box-sizing: border-box;
+            width: 100%; max-width: 95px; aspect-ratio: 2.5 / 3.5; background-color: #ffffff; 
+            border-radius: 10px; display: flex; justify-content: center; align-items: center; 
+            font-weight: 900; font-size: 32px; user-select: none; position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.35); border: 2px solid #e1e4e8;
+            transition: transform 0.15s ease, border-color 0.15s ease;
         }
-        
-        .minicarta.carta-juego { font-size: 16px !important; }
+        .minicarta { width: 28px; height: 38px; border-radius: 5px; font-size: 14px !important; border-width: 1.5px; cursor: pointer; }
 
-        /* --- CLASES DE REVELADO --- */
         .carta-oculta { 
-            background: linear-gradient(135deg, #2c3e50 25%, #34495e 25%, #34495e 50%, #2c3e50 50%, #2c3e50 75%, #34495e 75%, #34495e 100%) !important;
-            background-size: 20px 20px !important; color: transparent !important; border: 2px solid #fff;
+            background: repeating-linear-gradient(45deg, #2b394a, #2b394a 6px, #202b38 6px, #202b38 12px) !important;
+            color: transparent !important; border-color: #4a5a70;
         }
-        .carta-visible {
-            background-color: #ffffff !important;
-            background-image: none !important;
-        }
+        .carta-visible { background: #ffffff !important; }
         .carta-visible.carta-roja { color: var(--rojo-carta) !important; }
         .carta-visible.carta-negra { color: var(--negro-carta) !important; }
 
-        /* ANIMACIÓN MATCH RÁPIDO */
-        @keyframes titilar { 0% { box-shadow: 0 0 5px #3498db; } 50% { box-shadow: 0 0 20px #3498db; } 100% { box-shadow: 0 0 5px #3498db; } }
-        .carta-match { animation: titilar 1.5s infinite; border-color: #3498db !important; }
+        /* INTERACCIONES EN CARTAS */
+        .seleccionable-normal { border: 2.5px dashed var(--accent-color) !important; cursor: pointer; }
+        .seleccionable-poder { border: 2.5px dashed var(--morado) !important; cursor: pointer; }
 
-        @media (min-width: 600px) { .carta-juego { font-size: 36px; } }
+        /* DESTELLO DE CARTA REEMPLAZADA / INTERCAMBIADA */
+        @keyframes pulsoCambio {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.9), 0 0 12px 4px rgba(243, 156, 18, 0.8); border-color: #f39c12 !important; transform: scale(1.06); }
+            50% { box-shadow: 0 0 0 6px rgba(243, 156, 18, 0), 0 0 4px 1px rgba(243, 156, 18, 0.4); border-color: #fff !important; transform: scale(1); }
+        }
+        .carta-destacada-cambio {
+            animation: pulsoCambio 1.1s ease-in-out infinite !important;
+            z-index: 10;
+        }
+        .badge-cambio {
+            position: absolute; top: -8px; right: -8px; background: var(--accent-color); color: #000;
+            font-size: 10px; font-weight: 900; padding: 2px 5px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        /* CENTRO Y JUGADOR */
+        .centro-mesa { display: flex; gap: 24px; justify-content: center; align-items: center; margin: 6px 0; }
+        .contenedor-mazo { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 95px; }
+        .etiqueta-mazo { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+        
+        .zona-jugador { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+        .grilla-cartas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; max-width: 240px; justify-items: center; }
+
+        .botones-decision { display: flex; gap: 8px; width: 100%; justify-content: center; margin-top: 4px; }
+        .btn-mini { padding: 8px 16px; font-size: 14px; margin: 0; width: auto; border-radius: 8px; }
     </style>
 </head>
 <body>
 
     <div id="contenedor-notificaciones"></div>
 
+    <!-- PANTALLA INICIO -->
     <div id="pantalla-inicio" class="pantalla activa">
         <h1>CABO</h1>
-        <div class="sub">Mesa Descentralizada P2P</div>
-        <button id="btn-ir-crear">Crear Nueva Partida</button>
-        <button id="btn-ir-unirse" class="btn-secundario">Unirse a Partida</button>
+        <div class="sub">Servidor Cloud en Tiempo Real</div>
+        <button id="btn-ir-crear">Crear Nueva Sala</button>
+        <button id="btn-ir-unirse" class="btn-secundario">Unirse a una Sala</button>
     </div>
 
+    <!-- PANTALLA CREAR -->
     <div id="pantalla-crear" class="pantalla">
         <h1>Crear Sala</h1>
-        <div class="sub">Serás el anfitrión del juego</div>
-        <input type="text" id="input-nombre-crear" placeholder="Tu Nombre">
-        <button id="btn-confirmar-crear">Generar Código</button>
-        <button class="btn-secundario btn-volver">Volver atrás</button>
+        <div class="sub">Serás el anfitrión de la partida</div>
+        <input type="text" id="input-nombre-crear" placeholder="Tu Nombre" maxlength="14">
+        <button id="btn-confirmar-crear">Abrir Sala</button>
+        <button class="btn-secundario btn-volver">Volver</button>
     </div>
 
+    <!-- PANTALLA UNIRSE -->
     <div id="pantalla-unirse" class="pantalla">
         <h1>Unirse</h1>
-        <div class="sub">Ingresa a una sala existente</div>
-        <input type="text" id="input-nombre-unirse" placeholder="Tu Nombre">
-        <input type="text" id="input-codigo" placeholder="Código de 4 letras" style="text-transform: uppercase;">
+        <div class="sub">Ingresa tu nombre y el código de sala</div>
+        <input type="text" id="input-nombre-unirse" placeholder="Tu Nombre" maxlength="14">
+        <input type="text" id="input-codigo" placeholder="Código de 4 letras" maxlength="4" style="text-transform: uppercase;">
         <button id="btn-confirmar-unirse">Entrar a la Sala</button>
-        <button class="btn-secundario btn-volver">Volver atrás</button>
+        <button class="btn-secundario btn-volver">Volver</button>
     </div>
 
+    <!-- PANTALLA LOBBY -->
     <div id="pantalla-lobby" class="pantalla">
         <h2>Sala de Espera</h2>
-        <p>Comparte este código con tus amigos:</p>
-        <div id="codigo-sala-display" class="codigo-alerta">---</div>
+        <div class="sub" style="margin-bottom: 5px;">Comparte este código:</div>
+        <div id="codigo-sala-display" class="codigo-alerta">----</div>
         <div class="lista-jugadores" id="lista-jugadores"></div>
         <button id="btn-listo">¡Estoy Listo!</button>
     </div>
 
+    <!-- PANTALLA JUEGO -->
     <div id="pantalla-juego" class="pantalla" style="max-width: 100%;">
         <div class="mesa-tablero">
-            <div id="indicador-turno">Conectando sincronización...</div>
-            <div id="alerta-match">⚡ ¡MATCH RÁPIDO ABIERTO! Toca la carta ⚡</div>
+            <div id="indicador-turno">Conectando a la nube...</div>
             <div id="zona-oponentes"></div>
             
             <div class="centro-mesa">
-                <div id="mazo-robar" class="carta-juego carta-oculta"></div>
-                <div id="carta-centro" class="carta-juego"></div>
+                <div class="contenedor-mazo">
+                    <div id="mazo-robar" class="carta-juego carta-oculta">?</div>
+                    <span class="etiqueta-mazo" id="contador-mazo">Mazo</span>
+                </div>
+                <div class="contenedor-mazo">
+                    <div id="carta-centro" class="carta-juego"></div>
+                    <span class="etiqueta-mazo">Pozo</span>
+                </div>
             </div>
 
             <div class="zona-jugador">
                 <div class="grilla-cartas" id="mis-cartas-html"></div>
-                <button id="btn-ver-cartas" style="display: none; margin: 5px 0;">Ver cartas inferiores (3s)</button>
-                <button id="btn-cantar-cabo" style="display: none; margin: 5px 0; background-color: #8e44ad; color: white;">¡CANTAR CABO!</button>
-                <button id="btn-ver-puntajes" style="display: none; margin: 5px 0; background-color: #27ae60; color: white;">Ver Puntajes</button>
+                <button id="btn-ver-cartas" style="display: none;">Mirar mis 2 cartas inferiores (3s)</button>
+                <button id="btn-cantar-cabo" style="display: none; background-color: var(--morado); color: white;">📢 ¡CANTAR CABO!</button>
+                <button id="btn-ver-puntajes" style="display: none; background-color: var(--verde); color: #000;">Ver Tabla de Puntajes</button>
             </div>
         </div>
     </div>
 
+    <!-- PANTALLA RESULTADOS -->
     <div id="pantalla-resultados" class="pantalla">
         <h1 id="titulo-resultados">Fin de la Ronda</h1>
-        <div class="sub" id="sub-resultados">Recuento de puntos</div>
-        <div id="lista-resultados" style="background: var(--surface-color); border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: left;"></div>
-        
-        <button id="btn-siguiente-ronda" style="display: none; background-color: #2ecc71; color: white; margin-bottom: 10px;">Jugar Siguiente Ronda</button>
-        <button class="btn-secundario btn-volver" id="btn-volver-lobby">Salir al Lobby</button>
+        <div class="sub" id="sub-resultados">Puntajes acumulados</div>
+        <div id="lista-resultados" class="lista-jugadores"></div>
+        <button id="btn-siguiente-ronda" style="display: none; background-color: var(--verde); color: #000;">Jugar Siguiente Ronda</button>
+        <button class="btn-secundario btn-volver" id="btn-volver-lobby">Volver al Lobby</button>
     </div>
 
     <script>
+        // =========================================================================
+        // 1. CONFIGURACIÓN DE FIREBASE 
+        // =========================================================================
+        const firebaseConfig = {
+            databaseURL: "https://cabo-1591b-default-rtdb.firebaseio.com/"
+        };
+
+        let db = null;
+        try {
+            if (firebaseConfig.databaseURL.startsWith("https://")) {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+            }
+        } catch (e) { console.error(e); }
+
+        function verificarFirebase() {
+            if (!db) {
+                mostrarNotificacion("⚠️ Falta configurar el link de Firebase en la línea 192 del código.");
+                return false;
+            }
+            return true;
+        }
+
         // --- NOTIFICACIONES ---
         function mostrarNotificacion(mensaje) {
             const contenedor = document.getElementById('contenedor-notificaciones');
@@ -188,20 +262,10 @@
             noti.className = 'notificacion-toast';
             noti.innerText = mensaje;
             contenedor.appendChild(noti);
-            setTimeout(() => {
-                noti.classList.add('fade-out');
-                setTimeout(() => { if (contenedor.contains(noti)) contenedor.removeChild(noti); }, 300);
-            }, 3000);
+            setTimeout(() => { if (contenedor.contains(noti)) contenedor.removeChild(noti); }, 3200);
         }
 
-        // --- CARTAS Y PODERES ---
-        class Carta {
-            constructor(valor, color, puntos, poder) {
-                this.valor = valor; this.color = color; this.puntos = puntos; this.poder = poder;
-                this.id = Math.random().toString(36).substr(2, 5);
-            }
-        }
-
+        // --- CARTAS Y MAZO ---
         function asignarPoder(valor, color) {
             if (valor === '7' || valor === '8') return 'MIRAR_PROPIA';
             if (valor === '9' || valor === '10') return 'ESPIAR_RIVAL';
@@ -218,16 +282,16 @@
                     for(let r=0; r<2; r++) {
                         let pts = parseInt(v) || 0;
                         if(v==='A') pts=1; if(v==='J') pts=11; if(v==='Q') pts=12; if(v==='K') pts=-1;
-                        mazo.push(new Carta(v, 'Rojo', pts, asignarPoder(v, 'Rojo')));
+                        mazo.push({ valor: v, color: 'Rojo', puntos: pts, poder: asignarPoder(v, 'Rojo') });
                     }
                     for(let n=0; n<2; n++) {
                         let pts = parseInt(v) || 0;
                         if(v==='A') pts=1; if(v==='J') pts=11; if(v==='Q') pts=12; if(v==='K') pts=13;
-                        mazo.push(new Carta(v, 'Negro', pts, asignarPoder(v, 'Negro')));
+                        mazo.push({ valor: v, color: 'Negro', puntos: pts, poder: asignarPoder(v, 'Negro') });
                     }
                 });
-                mazo.push(new Carta('JK', 'Rojo', 0, 'Ninguno'));
-                mazo.push(new Carta('JK', 'Negro', 0, 'Ninguno'));
+                mazo.push({ valor: 'JK', color: 'Rojo', puntos: 0, poder: 'Ninguno' });
+                mazo.push({ valor: 'JK', color: 'Negro', puntos: 0, poder: 'Ninguno' });
             }
             for (let i = mazo.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -236,18 +300,50 @@
             return mazo;
         }
 
-        // --- GLOBALES ---
-        let peer = null, miIdPeer = '', miNombre = '', esAnfitrion = false, codigoSalaGlobal = '';
-        let conexionesAnfitrion = [], conexionAlAnfitrion = null; 
-        let estadoJuego = { 
-            jugadores: [], mazo: [], cartaCentro: null, turnoActual: 0, 
-            fase: 'Lobby', estadoTurno: 'NORMAL', poderData: {},
-            cantoCaboId: null, rondaFinal: false, partidaTerminada: false,
-            rondaActual: 0, 
-            ventanaMatch: false 
-        };
+        // --- IDENTIDAD PERSISTENTE DEL JUGADOR (Sobrevive a F5 o cierres) ---
+        let miIdJugador = localStorage.getItem('cabo_uid');
+        if (!miIdJugador) {
+            miIdJugador = 'jug_' + Math.random().toString(36).substr(2, 8);
+            localStorage.setItem('cabo_uid', miIdJugador);
+        }
 
-        // --- UI ROUTING ---
+        let miNombre = localStorage.getItem('cabo_nombre') || '';
+        document.getElementById('input-nombre-crear').value = miNombre;
+        document.getElementById('input-nombre-unirse').value = miNombre;
+
+        let codigoSalaGlobal = '';
+        let salaRef = null;
+        let estadoJuego = null;
+        let estoyEspiandoLocalmente = false;
+        let ultimoTimestampNotificado = 0;
+
+        // Firebase elimina arrays vacíos; esta función los restaura siempre al leer
+        function normalizarEstado(est) {
+            if (!est) return null;
+            est.mazo = est.mazo || [];
+            est.jugadores = (est.jugadores || []).map(j => ({
+                ...j,
+                cartas: j.cartas || [],
+                cartaEnMano: j.cartaEnMano || null,
+                puntajeTotal: j.puntajeTotal || 0,
+                puntajeRonda: j.puntajeRonda || 0,
+                vioCartas: !!j.vioCartas,
+                cartasVisibles: !!j.cartasVisibles
+            }));
+            est.poderData = est.poderData || {};
+            return est;
+        }
+
+        function esAnfitrionLocal() {
+            return estadoJuego && estadoJuego.anfitrionId === miIdJugador;
+        }
+
+        function obtenerJugadorLocal() {
+            if (!estadoJuego || !estadoJuego.jugadores) return null;
+            return estadoJuego.jugadores.find(j => j.id === miIdJugador);
+        }
+
+        // --- NAVEGACIÓN ---
         const pInicio = document.getElementById('pantalla-inicio');
         const pCrear = document.getElementById('pantalla-crear');
         const pUnirse = document.getElementById('pantalla-unirse');
@@ -260,439 +356,616 @@
             pantalla.classList.add('activa');
         }
 
-        document.getElementById('btn-ir-crear').addEventListener('click', () => cambiarPantalla(pCrear));
-        document.getElementById('btn-ir-unirse').addEventListener('click', () => cambiarPantalla(pUnirse));
-        document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => {
-            if(btn.id === 'btn-volver-lobby') {
-                estadoJuego.fase = 'Lobby';
-                estadoJuego.jugadores.forEach(j => { j.listo = false; j.cartas = []; });
-                if (esAnfitrion) enviarEstadoATodos();
+        document.getElementById('btn-ir-crear').onclick = () => cambiarPantalla(pCrear);
+        document.getElementById('btn-ir-unirse').onclick = () => cambiarPantalla(pUnirse);
+        document.querySelectorAll('.btn-volver').forEach(btn => btn.onclick = () => {
+            if (btn.id === 'btn-volver-lobby') {
+                if (esAnfitrionLocal()) {
+                    ejecutarTransaccion(est => {
+                        est.fase = 'Lobby';
+                        est.jugadores.forEach(j => { j.listo = false; j.cartas = []; });
+                        return est;
+                    });
+                }
                 cambiarPantalla(pLobby);
             } else {
                 cambiarPantalla(pInicio);
             }
-        }));
+        });
 
-        document.getElementById('btn-confirmar-crear').addEventListener('click', () => {
+        // --- CREAR Y UNIRSE A SALA EN FIREBASE ---
+        document.getElementById('btn-confirmar-crear').onclick = async () => {
+            if (!verificarFirebase()) return;
             miNombre = document.getElementById('input-nombre-crear').value.trim();
             if (!miNombre) return mostrarNotificacion("Ingresa tu nombre");
-            esAnfitrion = true;
+            localStorage.setItem('cabo_nombre', miNombre);
+
             codigoSalaGlobal = Math.random().toString(36).substr(2, 4).toUpperCase();
             document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
-            cambiarPantalla(pLobby);
-            inicializarPeer(`CABO-${codigoSalaGlobal}`);
-        });
 
-        document.getElementById('btn-confirmar-unirse').addEventListener('click', () => {
+            const estadoInicial = {
+                anfitrionId: miIdJugador,
+                fase: 'Lobby',
+                turnoActual: 0,
+                estadoTurno: 'NORMAL',
+                rondaActual: 0,
+                rondaFinal: false,
+                partidaTerminada: false,
+                ventanaMatch: false,
+                cantoCaboId: null,
+                ultimoCambio: null,
+                jugadores: [{
+                    id: miIdJugador,
+                    nombre: miNombre,
+                    listo: false,
+                    cartas: [],
+                    puntajeTotal: 0,
+                    puntajeRonda: 0
+                }]
+            };
+
+            salaRef = db.ref('salas/' + codigoSalaGlobal);
+            await salaRef.set(estadoInicial);
+            escucharCambiosDeSala();
+            cambiarPantalla(pLobby);
+        };
+
+        document.getElementById('btn-confirmar-unirse').onclick = async () => {
+            if (!verificarFirebase()) return;
             miNombre = document.getElementById('input-nombre-unirse').value.trim();
             codigoSalaGlobal = document.getElementById('input-codigo').value.trim().toUpperCase();
-            if (!miNombre || !codigoSalaGlobal) return mostrarNotificacion("Completa los datos");
-            esAnfitrion = false;
-            document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
-            cambiarPantalla(pLobby);
-            inicializarPeer(); 
-        });
+            if (!miNombre || !codigoSalaGlobal) return mostrarNotificacion("Completa nombre y código");
+            localStorage.setItem('cabo_nombre', miNombre);
 
-        document.getElementById('btn-listo').addEventListener('click', () => {
-            document.getElementById('btn-listo').disabled = true;
-            document.getElementById('btn-listo').innerText = "Esperando...";
-            if (esAnfitrion) marcarListoLocal(miIdPeer);
-            else conexionAlAnfitrion.send({ type: 'LISTO' });
-        });
+            salaRef = db.ref('salas/' + codigoSalaGlobal);
+            const snapshot = await salaRef.once('value');
+            const datosSala = normalizarEstado(snapshot.val());
 
-        document.getElementById('btn-siguiente-ronda').addEventListener('click', () => {
-            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'SIGUIENTE_RONDA');
-        });
+            if (!datosSala) return mostrarNotificacion("La sala no existe. Verifica el código.");
 
-        document.getElementById('btn-ver-puntajes').addEventListener('click', () => {
-            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'IR_A_RESULTADOS');
-        });
-
-        // --- P2P ---
-        function inicializarPeer(idFijo = null) {
-            peer = idFijo ? new Peer(idFijo) : new Peer();
-            peer.on('open', (id) => {
-                miIdPeer = id;
-                if (esAnfitrion) {
-                    estadoJuego.jugadores.push({ id: miIdPeer, nombre: miNombre, listo: false, cartas: [], cartaEnMano: null });
-                    actualizarLobbyUI();
-                } else conectarAlAnfitrion(`CABO-${codigoSalaGlobal}`);
+            await salaRef.transaction(raw => {
+                if (!raw) return raw;
+                let est = normalizarEstado(raw);
+                // Buscar si ya estaba por ID o por mismo nombre (Reconexión)
+                let existente = est.jugadores.find(j => j.id === miIdJugador || j.nombre.toLowerCase() === miNombre.toLowerCase());
+                if (existente) {
+                    const idAnterior = existente.id;
+                    existente.id = miIdJugador;
+                    existente.nombre = miNombre;
+                    if (est.anfitrionId === idAnterior) est.anfitrionId = miIdJugador;
+                    if (est.cantoCaboId === idAnterior) est.cantoCaboId = miIdJugador;
+                    return est;
+                }
+                if (est.fase !== 'Lobby') return; // Abortar si ya empezó y es jugador nuevo
+                est.jugadores.push({
+                    id: miIdJugador,
+                    nombre: miNombre,
+                    listo: false,
+                    cartas: [],
+                    puntajeTotal: 0,
+                    puntajeRonda: 0
+                });
+                return est;
             });
-            peer.on('connection', (conn) => {
-                if (esAnfitrion) {
-                    conexionesAnfitrion.push(conn);
-                    conn.on('data', (data) => procesarDataHost(data, conn));
+
+            document.getElementById('codigo-sala-display').innerText = codigoSalaGlobal;
+            escucharCambiosDeSala();
+        };
+
+        function escucharCambiosDeSala() {
+            if (!salaRef) return;
+            salaRef.off();
+            salaRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (!val) return;
+                estadoJuego = normalizarEstado(val);
+
+                // Notificar intercambios o penalidades nuevas
+                if (estadoJuego.ultimoCambio && estadoJuego.ultimoCambio.timestamp !== ultimoTimestampNotificado) {
+                    ultimoTimestampNotificado = estadoJuego.ultimoCambio.timestamp;
+                    if (Date.now() - estadoJuego.ultimoCambio.timestamp < 5000) {
+                        mostrarNotificacion(estadoJuego.ultimoCambio.mensaje);
+                        // Re-renderizar a los 5.1s para apagar el brillo dorado
+                        setTimeout(() => { if (!estoyEspiandoLocalmente) renderizarMesaDinamica(); }, 5100);
+                    }
+                }
+
+                if (estadoJuego.fase === 'Lobby') {
+                    cambiarPantalla(pLobby);
+                    actualizarLobbyUI();
+                } else if (estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'FinRondaMesa') {
+                    if (!pJuego.classList.contains('activa')) cambiarPantalla(pJuego);
+                    if (!estoyEspiandoLocalmente) renderizarMesaDinamica();
+                } else if (estadoJuego.fase === 'Resultados') {
+                    mostrarPantallaResultados();
                 }
             });
-            peer.on('error', (err) => {
-                mostrarNotificacion("Error de red. Revisa el código.");
-                setTimeout(() => window.location.reload(), 3000);
+        }
+
+        // --- TRANSACCIONES ATÓMICAS EN LA NUBE ---
+        function ejecutarTransaccion(fnModificadora) {
+            if (!salaRef) return;
+            salaRef.transaction(raw => {
+                if (!raw) return raw;
+                let est = normalizarEstado(raw);
+                return fnModificadora(est);
             });
         }
 
-        function conectarAlAnfitrion(idTarget) {
-            conexionAlAnfitrion = peer.connect(idTarget);
-            conexionAlAnfitrion.on('open', () => conexionAlAnfitrion.send({ type: 'UNIRSE', nombre: miNombre, id: miIdPeer }));
-            conexionAlAnfitrion.on('data', (data) => procesarDataInvitado(data));
-        }
+        function armarNuevaRondaEnEstado(est) {
+            est.rondaActual = (est.rondaActual || 0) + 1;
+            est.fase = 'Preparacion';
+            est.mazo = generarMazoCabo();
+            est.cantoCaboId = null;
+            est.rondaFinal = false;
+            est.ventanaMatch = true;
+            est.ultimoCambio = null;
 
-        // --- LÓGICA DE CONTROL (HOST) ---
-        function procesarDataHost(data, conn) {
-            if (data.type === 'UNIRSE') {
-                if (estadoJuego.fase !== 'Lobby') return conn.send({ type: 'RECHAZO', motivo: 'La partida ya empezó.' });
-                const idFinal = data.id || conn.peer;
-                estadoJuego.jugadores.push({ id: idFinal, nombre: data.nombre, listo: false, cartas: [], cartaEnMano: null });
-                enviarEstadoATodos();
-                actualizarLobbyUI();
-            }
-            if (data.type === 'LISTO') marcarListoLocal(conn.peer);
-            if (data.type === 'ACCION') procesarAccionLocal(conn.peer, data.accion, data.datosExtra);
-        }
-
-        function marcarListoLocal(peerId) {
-            let jug = estadoJuego.jugadores.find(j => j.id === peerId) || estadoJuego.jugadores.find(j => j.id === `CABO-${codigoSalaGlobal}`);
-            if (jug) jug.listo = true;
-            actualizarLobbyUI();
-            if (esAnfitrion) enviarEstadoATodos();
-            if (estadoJuego.jugadores.every(j => j.listo) && estadoJuego.jugadores.length >= 2) iniciarPartidaMatematica();
-        }
-
-        function iniciarPartidaMatematica() {
-            estadoJuego.jugadores.forEach(j => { j.puntajeTotal = 0; });
-            estadoJuego.partidaTerminada = false;
-            estadoJuego.rondaActual = 0; 
-            iniciarNuevaRonda();
-        }
-
-        function iniciarNuevaRonda() {
-            estadoJuego.rondaActual++; 
-            estadoJuego.fase = 'Preparacion'; // Fase de bloqueo inicial
-            estadoJuego.mazo = generarMazoCabo();
-            estadoJuego.cantoCaboId = null;
-            estadoJuego.rondaFinal = false;
-            estadoJuego.ventanaMatch = true; 
-            estadoJuego.jugadores.forEach(j => {
-                j.cartas = [estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop(), estadoJuego.mazo.pop()];
+            est.jugadores.forEach(j => {
+                j.cartas = [est.mazo.pop(), est.mazo.pop(), est.mazo.pop(), est.mazo.pop()];
+                j.cartaEnMano = null;
                 j.puntajeRonda = 0;
                 j.vioCartas = false;
                 j.cartasVisibles = false;
             });
-            estadoJuego.cartaCentro = estadoJuego.mazo.pop();
-            
-            estadoJuego.turnoActual = (estadoJuego.rondaActual - 1) % estadoJuego.jugadores.length;
-            estadoJuego.estadoTurno = 'NORMAL';
-            estadoJuego.poderData = {};
-            enviarEstadoATodos();
-            comenzarJuegoUI();
+
+            est.cartaCentro = est.mazo.pop();
+            est.turnoActual = (est.rondaActual - 1) % est.jugadores.length;
+            est.estadoTurno = 'NORMAL';
+            est.poderData = {};
+            return est;
         }
 
-        function finalizarRonda() {
-            estadoJuego.fase = 'FinRondaMesa';
-            estadoJuego.estadoTurno = 'FIN_RONDA_MESA';
-            
-            // Revelamos absolutamente todas las cartas y calculamos
-            estadoJuego.jugadores.forEach(j => {
+        function finalizarRondaEnEstado(est) {
+            est.fase = 'FinRondaMesa';
+            est.estadoTurno = 'FIN_RONDA_MESA';
+            est.ventanaMatch = false;
+
+            est.jugadores.forEach(j => {
                 j.cartasVisibles = true;
-                j.puntajeRonda = j.cartas.reduce((total, c) => total + c.puntos, 0);
+                j.puntajeRonda = (j.cartas || []).reduce((total, c) => total + c.puntos, 0);
             });
 
-            // Lógica exacta de Penalidad de Cabo
-            if (estadoJuego.cantoCaboId) {
-                let jugadorCabo = estadoJuego.jugadores.find(j => j.id === estadoJuego.cantoCaboId);
-                let menorPuntaje = Math.min(...estadoJuego.jugadores.map(j => j.puntajeRonda));
-                let cantidadMenores = estadoJuego.jugadores.filter(j => j.puntajeRonda === menorPuntaje).length;
+            if (est.cantoCaboId) {
+                let jugadorCabo = est.jugadores.find(j => j.id === est.cantoCaboId);
+                if (jugadorCabo) {
+                    let menorPuntaje = Math.min(...est.jugadores.map(j => j.puntajeRonda));
+                    let cantidadMenores = est.jugadores.filter(j => j.puntajeRonda === menorPuntaje).length;
 
-                if (jugadorCabo.puntajeRonda === menorPuntaje && cantidadMenores === 1) {
-                    jugadorCabo.puntajeRonda = 0; // Ganó Cabo limpiamente
-                } else {
-                    jugadorCabo.puntajeRonda = 15 + (jugadorCabo.puntajeRonda - menorPuntaje); // Penalidad oficial
+                    if (jugadorCabo.puntajeRonda === menorPuntaje && cantidadMenores === 1) {
+                        jugadorCabo.puntajeRonda = 0;
+                    } else {
+                        jugadorCabo.puntajeRonda = 15 + (jugadorCabo.puntajeRonda - menorPuntaje);
+                    }
                 }
             }
+            return est;
         }
 
-        // --- SISTEMA CENTRALIZADO DE AVANCE DE TURNOS ---
-        const avanzarTurno = () => {
-            let jugadorActual = estadoJuego.jugadores[estadoJuego.turnoActual];
-            
-            // Si es ronda final, quien termina de jugar da vuelta sus cartas a la vista de todos
-            if (estadoJuego.rondaFinal) {
-                jugadorActual.cartasVisibles = true; 
+        function avanzarTurnoEnEstado(est) {
+            let jugadorActual = est.jugadores[est.turnoActual];
+            if (est.rondaFinal && jugadorActual) jugadorActual.cartasVisibles = true;
+
+            est.estadoTurno = 'NORMAL';
+            est.turnoActual = (est.turnoActual + 1) % est.jugadores.length;
+
+            let siguienteJugador = est.jugadores[est.turnoActual];
+            let terminoPorCabo = (est.rondaFinal && siguienteJugador.id === est.cantoCaboId);
+            let terminoPorMazo = (!est.mazo || est.mazo.length === 0);
+            let alguienSinCartas = est.jugadores.some(j => !j.cartas || j.cartas.length === 0);
+
+            if (terminoPorCabo || terminoPorMazo || alguienSinCartas) {
+                finalizarRondaEnEstado(est);
             }
-            
-            estadoJuego.estadoTurno = 'NORMAL';
-            estadoJuego.turnoActual = (estadoJuego.turnoActual + 1) % estadoJuego.jugadores.length;
+            return est;
+        }
 
-            let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            let terminoPorCabo = (estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId);
-            let terminoPorMazo = (estadoJuego.mazo.length === 0);
-            let alguienSinCartas = estadoJuego.jugadores.some(j => j.cartas.length === 0);
-
-            if (terminoPorCabo || terminoPorMazo || alguienSinCartas) finalizarRonda();
+        // --- ACCIONES DE LOS BOTONES ---
+        document.getElementById('btn-listo').onclick = () => {
+            ejecutarTransaccion(est => {
+                let yo = est.jugadores.find(j => j.id === miIdJugador);
+                if (yo) yo.listo = true;
+                if (est.jugadores.length >= 2 && est.jugadores.every(j => j.listo)) {
+                    est.jugadores.forEach(j => j.puntajeTotal = 0);
+                    est.partidaTerminada = false;
+                    est.rondaActual = 0;
+                    armarNuevaRondaEnEstado(est);
+                }
+                return est;
+            });
         };
 
-        function procesarAccionLocal(peerId, accion, datosExtra = null) {
-            
-            if (accion === 'SIGUIENTE_RONDA' && esAnfitrion) {
-                iniciarNuevaRonda();
-                return;
-            }
+        document.getElementById('btn-siguiente-ronda').onclick = () => {
+            if (!esAnfitrionLocal()) return;
+            ejecutarTransaccion(est => armarNuevaRondaEnEstado(est));
+        };
 
-            if (accion === 'IR_A_RESULTADOS' && esAnfitrion) {
-                estadoJuego.fase = 'Resultados';
+        document.getElementById('btn-ver-puntajes').onclick = () => {
+            if (!esAnfitrionLocal()) return;
+            ejecutarTransaccion(est => {
+                est.fase = 'Resultados';
                 let algunPerdedor = false;
-                estadoJuego.jugadores.forEach(j => {
-                    j.puntajeTotal += j.puntajeRonda;
+                est.jugadores.forEach(j => {
+                    j.puntajeTotal = (j.puntajeTotal || 0) + (j.puntajeRonda || 0);
                     if (j.puntajeTotal >= 100) algunPerdedor = true;
                 });
-                estadoJuego.partidaTerminada = algunPerdedor;
-                enviarEstadoATodos();
-                mostrarPantallaResultados();
-                return;
-            }
+                est.partidaTerminada = algunPerdedor;
+                return est;
+            });
+        };
 
-            if (accion === 'VIO_CARTAS') {
-                let jug = estadoJuego.jugadores.find(j => j.id === peerId);
-                if(jug) jug.vioCartas = true;
-                if (estadoJuego.fase === 'Preparacion' && estadoJuego.jugadores.every(j => j.vioCartas)) {
-                    estadoJuego.fase = 'Jugando';
-                }
-            }
-
-            let jugadorTurno = estadoJuego.jugadores[estadoJuego.turnoActual];
+        document.getElementById('btn-ver-cartas').onclick = () => {
+            const btn = document.getElementById('btn-ver-cartas');
+            btn.style.display = 'none';
+            const cIzq = document.getElementById('mi-carta-2');
+            const cDer = document.getElementById('mi-carta-3');
+            if(!cIzq || !cDer) return;
             
-            if (accion === 'ROBAR_MAZO') {
-                if (estadoJuego.mazo.length === 0) return mostrarNotificacion("¡Se agotó el mazo!");
-                jugadorTurno.cartaEnMano = estadoJuego.mazo.pop();
-                estadoJuego.ventanaMatch = false; 
-            }
-
-            if (accion === 'ROBAR_CENTRO') {
-                jugadorTurno.cartaEnMano = estadoJuego.cartaCentro;
-                estadoJuego.cartaCentro = { valor: '', color: 'Negro', puntos: 0, poder: 'Ninguno' }; 
-                estadoJuego.ventanaMatch = false; 
-            }
+            estoyEspiandoLocalmente = true;
+            const revelar = (el) => { 
+                el.className = `carta-juego mi-carta-interactiva carta-visible ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; 
+                el.innerText = el.dataset.valor; 
+            };
+            revelar(cIzq); revelar(cDer);
             
-            if (accion === 'DESCARTAR') {
-                estadoJuego.cartaCentro = jugadorTurno.cartaEnMano;
-                estadoJuego.ventanaMatch = true; 
-                
-                let poderActivado = jugadorTurno.cartaEnMano.poder;
-                jugadorTurno.cartaEnMano = null;
-                estadoJuego.poderData = { poderPendiente: poderActivado }; 
+            setTimeout(() => { 
+                estoyEspiandoLocalmente = false;
+                ejecutarTransaccion(est => {
+                    let yo = est.jugadores.find(j => j.id === miIdJugador);
+                    if (yo) yo.vioCartas = true;
+                    if (est.fase === 'Preparacion' && est.jugadores.every(j => j.vioCartas)) {
+                        est.fase = 'Jugando';
+                    }
+                    return est;
+                });
+            }, 3000);
+        };
 
-                const hayRivales = estadoJuego.jugadores.length > 1;
+        document.getElementById('btn-cantar-cabo').onclick = () => {
+            ejecutarTransaccion(est => {
+                est.cantoCaboId = miIdJugador;
+                est.rondaFinal = true;
+                return est;
+            });
+        };
 
-                if (poderActivado !== 'Ninguno') {
-                    if ((poderActivado === 'ESPIAR_RIVAL' || poderActivado === 'INTERCAMBIAR' || poderActivado === 'ESPIAR_INTERCAMBIAR') && !hayRivales) {
-                        mostrarNotificacion("No hay rivales para usar este poder.");
-                        avanzarTurno();
+        document.getElementById('mazo-robar').onclick = () => {
+            if (!estadoJuego || estadoJuego.fase !== 'Jugando') return;
+            const yo = obtenerJugadorLocal();
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (!yo || turnoJugador.id !== yo.id || yo.cartaEnMano || estadoJuego.estadoTurno !== 'NORMAL') return;
+
+            ejecutarTransaccion(est => {
+                if (!est.mazo || est.mazo.length === 0) return est;
+                let jug = est.jugadores[est.turnoActual];
+                jug.cartaEnMano = est.mazo.pop();
+                est.ventanaMatch = false;
+                return est;
+            });
+        };
+
+        document.getElementById('carta-centro').onclick = () => {
+            if (!estadoJuego || estadoJuego.fase !== 'Jugando') return;
+            const yo = obtenerJugadorLocal();
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (!yo || turnoJugador.id !== yo.id) return;
+
+            ejecutarTransaccion(est => {
+                let jug = est.jugadores[est.turnoActual];
+                if (jug.cartaEnMano) {
+                    est.cartaCentro = jug.cartaEnMano;
+                    est.ventanaMatch = true;
+                    let poderActivado = jug.cartaEnMano.poder;
+                    jug.cartaEnMano = null;
+                    est.poderData = { poderPendiente: poderActivado };
+
+                    if (poderActivado !== 'Ninguno' && est.jugadores.length > 1) {
+                        est.estadoTurno = 'PODER_OPCIONAL';
+                    } else if (poderActivado === 'MIRAR_PROPIA') {
+                        est.estadoTurno = 'PODER_OPCIONAL';
                     } else {
-                        estadoJuego.estadoTurno = 'PODER_OPCIONAL';
+                        avanzarTurnoEnEstado(est);
                     }
-                } else {
-                    avanzarTurno(); 
+                } else if (est.estadoTurno === 'NORMAL' && est.cartaCentro && est.cartaCentro.valor !== '') {
+                    jug.cartaEnMano = est.cartaCentro;
+                    est.cartaCentro = { valor: '', color: 'Negro', puntos: 0, poder: 'Ninguno' };
+                    est.ventanaMatch = false;
                 }
-            }
+                return est;
+            });
+        };
 
-            if (accion === 'DECISION_PODER_OPCIONAL') {
-                const { usarPoder } = datosExtra;
-                if (usarPoder) {
-                    let poderActivado = estadoJuego.poderData.poderPendiente;
-                    if (poderActivado === 'MIRAR_PROPIA') estadoJuego.estadoTurno = 'PODER_MIRAR_PROPIA';
-                    else if (poderActivado === 'ESPIAR_RIVAL') estadoJuego.estadoTurno = 'PODER_ESPIAR_RIVAL';
-                    else if (poderActivado === 'INTERCAMBIAR') estadoJuego.estadoTurno = 'PODER_INT_PROPIA';
-                    else if (poderActivado === 'ESPIAR_INTERCAMBIAR') estadoJuego.estadoTurno = 'PODER_SUP_PROPIA';
-                } else {
-                    avanzarTurno();
-                }
-            }
-            
-            if (accion === 'CAMBIAR') {
-                const indice = datosExtra; 
-                const cartaReemplazada = jugadorTurno.cartas[indice];
-                jugadorTurno.cartas[indice] = jugadorTurno.cartaEnMano;
-                estadoJuego.cartaCentro = cartaReemplazada;
-                estadoJuego.ventanaMatch = true; 
-                jugadorTurno.cartaEnMano = null;
-                avanzarTurno(); 
-            }
+        document.getElementById('indicador-turno').onclick = (e) => {
+            const idBtn = e.target.id;
+            if (!idBtn) return;
 
-            // --- MATCH RÁPIDO Y DAR CARTA AL RIVAL ---
-            if (accion === 'MATCH_RAPIDO') {
-                const { idJugador, indiceCarta } = datosExtra;
-                let jugadorMatch = estadoJuego.jugadores.find(j => j.id === idJugador);
-                
-                if (estadoJuego.ventanaMatch && jugadorMatch && jugadorMatch.cartas[indiceCarta]) {
-                    if (jugadorMatch.cartas[indiceCarta].valor === estadoJuego.cartaCentro.valor) {
-                        jugadorMatch.cartas.splice(indiceCarta, 1);
-                        if (estadoJuego.rondaFinal) jugadorMatch.cartasVisibles = true;
-
-                        estadoJuego.ventanaMatch = false; 
-                        estadoJuego.estadoTurno = 'NORMAL';
-                        if(jugadorMatch.cartaEnMano) jugadorMatch.cartaEnMano = null; 
-
-                        if (estadoJuego.fase === 'Jugando') {
-                            const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === idJugador);
-                            estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
-                            
-                            let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-                            if ((estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId) || estadoJuego.jugadores.some(j => j.cartas.length === 0)) {
-                                finalizarRonda();
-                            }
-                        } else if (estadoJuego.fase === 'Preparacion') {
-                            if (estadoJuego.jugadores.some(j => j.cartas.length === 0)) finalizarRonda();
-                        }
+            if (idBtn === 'btn-poder-si' || idBtn === 'btn-poder-no') {
+                const usar = (idBtn === 'btn-poder-si');
+                ejecutarTransaccion(est => {
+                    if (usar) {
+                        let p = est.poderData.poderPendiente;
+                        if (p === 'MIRAR_PROPIA') est.estadoTurno = 'PODER_MIRAR_PROPIA';
+                        else if (p === 'ESPIAR_RIVAL') est.estadoTurno = 'PODER_ESPIAR_RIVAL';
+                        else if (p === 'INTERCAMBIAR') est.estadoTurno = 'PODER_INT_PROPIA';
+                        else if (p === 'ESPIAR_INTERCAMBIAR') est.estadoTurno = 'PODER_SUP_PROPIA';
                     } else {
-                        mostrarNotificacion(`¡Match fallido de ${jugadorMatch.nombre}! Penalidad.`);
-                        if (estadoJuego.mazo.length > 0) jugadorMatch.cartas.push(estadoJuego.mazo.pop());
+                        avanzarTurnoEnEstado(est);
                     }
-                }
-            }
-
-            if (accion === 'MATCH_RIVAL') {
-                const { idJugadorQueHaceMatch, targetId, targetIndice } = datosExtra;
-                let jugadorQueHaceMatch = estadoJuego.jugadores.find(j => j.id === idJugadorQueHaceMatch);
-                let jugadorTarget = estadoJuego.jugadores.find(j => j.id === targetId);
-
-                if (estadoJuego.ventanaMatch && jugadorTarget && jugadorTarget.cartas[targetIndice]) {
-                    if (jugadorTarget.cartas[targetIndice].valor === estadoJuego.cartaCentro.valor) {
-                        // Match exitoso a rival
-                        jugadorTarget.cartas.splice(targetIndice, 1);
-                        estadoJuego.ventanaMatch = false; 
-                        if(jugadorQueHaceMatch.cartaEnMano) jugadorQueHaceMatch.cartaEnMano = null;
-                        
-                        // Estado para obligar a dar una carta
-                        estadoJuego.estadoTurno = 'ESPERANDO_CARTA_MATCH_RIVAL';
-                        estadoJuego.poderData = {
-                            jugadorActivoMatchId: idJugadorQueHaceMatch,
-                            targetIdRecepcionista: targetId
-                        };
-                    } else {
-                        // Fallo
-                        mostrarNotificacion(`¡Match fallido de ${jugadorQueHaceMatch.nombre}! Penalidad.`);
-                        if (estadoJuego.mazo.length > 0) jugadorQueHaceMatch.cartas.push(estadoJuego.mazo.pop());
-                    }
-                }
-            }
-
-            if (accion === 'DAR_CARTA_MATCH') {
-                const { indiceCarta } = datosExtra;
-                let jugadorQueDa = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.jugadorActivoMatchId);
-                let jugadorQueRecibe = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.targetIdRecepcionista);
-
-                if (jugadorQueDa && jugadorQueRecibe && jugadorQueDa.cartas[indiceCarta]) {
-                    const cartaTransferida = jugadorQueDa.cartas.splice(indiceCarta, 1)[0];
-                    jugadorQueRecibe.cartas.push(cartaTransferida);
-
-                    estadoJuego.estadoTurno = 'NORMAL';
-                    estadoJuego.poderData = {};
-
-                    if (estadoJuego.fase === 'Jugando') {
-                        const indiceJugadorMatch = estadoJuego.jugadores.findIndex(j => j.id === jugadorQueDa.id);
-                        estadoJuego.turnoActual = (indiceJugadorMatch + 1) % estadoJuego.jugadores.length;
-
-                        let siguienteJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-                        if ((estadoJuego.rondaFinal && siguienteJugador.id === estadoJuego.cantoCaboId) || estadoJuego.jugadores.some(j => j.cartas.length === 0)) {
-                            finalizarRonda();
-                        }
-                    } else if (estadoJuego.fase === 'Preparacion') {
-                        if (estadoJuego.jugadores.some(j => j.cartas.length === 0)) finalizarRonda();
-                    }
-                }
-            }
-
-            if (accion === 'CANTAR_CABO') {
-                estadoJuego.cantoCaboId = peerId;
-                estadoJuego.rondaFinal = true;
-                // Sigue su turno para descartar o cambiar, no salta directamente
-            }
-
-            if (accion === 'EJECUTAR_PODER') {
-                const { tipo, datos } = datosExtra;
-                
-                if (tipo === 'SELECCION_INT_PROPIA') {
-                    estadoJuego.poderData.miIndice = datos.indice;
-                    estadoJuego.estadoTurno = 'PODER_INT_RIVAL';
-                }
-                else if (tipo === 'SELECCION_INT_RIVAL') {
-                    const miIdx = estadoJuego.poderData.miIndice;
-                    const targetIdx = datos.targetIndice;
-                    let targetJug = estadoJuego.jugadores.find(j => j.id === datos.targetId) || estadoJuego.jugadores[datos.targetJugIndice];
-                    
-                    if (targetJug && targetJug.cartas[targetIdx] && jugadorTurno.cartas[miIdx]) {
-                        const temp = jugadorTurno.cartas[miIdx];
-                        jugadorTurno.cartas[miIdx] = targetJug.cartas[targetIdx];
-                        targetJug.cartas[targetIdx] = temp;
-                    }
-                    avanzarTurno();
-                }
-                else if (tipo === 'SELECCION_SUP_PROPIA') {
-                    estadoJuego.poderData.miIndice = datos.indice;
-                    estadoJuego.estadoTurno = 'PODER_SUP_RIVAL_ESPIAR';
-                }
-                else if (tipo === 'SELECCION_SUP_RIVAL') {
-                    estadoJuego.poderData.targetId = datos.targetId;
-                    estadoJuego.poderData.targetJugIndice = datos.targetJugIndice;
-                    estadoJuego.poderData.targetIndice = datos.targetIndice;
-                    estadoJuego.estadoTurno = 'PODER_SUP_DECIDIR';
-                }
-                else if (tipo === 'DECISION_SUP') {
-                    if (datos.cambiar) {
-                        const miIdx = estadoJuego.poderData.miIndice;
-                        const targetIdx = estadoJuego.poderData.targetIndice;
-                        let targetJug = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.targetId) || estadoJuego.jugadores[estadoJuego.poderData.targetJugIndice];
-                        
-                        if (targetJug && targetJug.cartas[targetIdx] && jugadorTurno.cartas[miIdx]) {
-                            const temp = jugadorTurno.cartas[miIdx];
-                            jugadorTurno.cartas[miIdx] = targetJug.cartas[targetIdx];
+                    return est;
+                });
+            } else if (idBtn === 'btn-sup-si' || idBtn === 'btn-sup-no') {
+                const cambiar = (idBtn === 'btn-sup-si');
+                ejecutarTransaccion(est => {
+                    if (cambiar) {
+                        let jugTurno = est.jugadores[est.turnoActual];
+                        let miIdx = est.poderData.miIndice;
+                        let targetIdx = est.poderData.targetIndice;
+                        let targetJug = est.jugadores.find(j => j.id === est.poderData.targetId);
+                        if (targetJug && targetJug.cartas[targetIdx] && jugTurno.cartas[miIdx]) {
+                            const temp = jugTurno.cartas[miIdx];
+                            jugTurno.cartas[miIdx] = targetJug.cartas[targetIdx];
                             targetJug.cartas[targetIdx] = temp;
+                            est.ultimoCambio = {
+                                movimientos: [{ idJugador: jugTurno.id, indice: miIdx }, { idJugador: targetJug.id, indice: targetIdx }],
+                                mensaje: `👑 ${jugTurno.nombre} intercambió su carta #${miIdx + 1} con la #${targetIdx + 1} de ${targetJug.nombre}`,
+                                timestamp: Date.now()
+                            };
                         }
                     }
-                    avanzarTurno();
-                }
+                    avanzarTurnoEnEstado(est);
+                    return est;
+                });
             }
+        };
 
-            if (accion === 'FIN_TURNO') {
-                avanzarTurno(); 
-            }
+        // --- CLIC EN CARTAS DE RIVALES ---
+        document.getElementById('zona-oponentes').onclick = (e) => {
+            if (estoyEspiandoLocalmente || !estadoJuego) return;
+            const cartaInteractiva = e.target.closest('.carta-oponente-interactiva');
+            if (!cartaInteractiva) return;
+            
+            const yo = obtenerJugadorLocal();
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (!yo) return;
 
-            enviarEstadoATodos();
-            if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'FinRondaMesa') && esAnfitrion) renderizarMesaDinamica();
-            if (estadoJuego.fase === 'Resultados' && esAnfitrion) mostrarPantallaResultados();
-        }
+            const targetId = cartaInteractiva.dataset.id;
+            const targetIndice = parseInt(cartaInteractiva.dataset.indice);
+            const soyElDelTurno = (turnoJugador.id === yo.id);
+            const estoyApuntandoPoder = soyElDelTurno && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR');
 
-        function enviarEstadoATodos() { conexionesAnfitrion.forEach(conn => conn.send({ type: 'SINCRO', estado: estadoJuego })); }
+            // MATCH RIVAL EN TIEMPO REAL
+            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyApuntandoPoder && !yo.cartasVisibles && estadoJuego.estadoTurno === 'NORMAL') {
+                ejecutarTransaccion(est => {
+                    if (!est.ventanaMatch) return est;
+                    let jugMatch = est.jugadores.find(j => j.id === miIdJugador);
+                    let jugTarget = est.jugadores.find(j => j.id === targetId);
+                    if (!jugMatch || !jugTarget || !jugTarget.cartas[targetIndice]) return est;
 
-        // --- CLIENTE INTERFAZ ---
-        function procesarDataInvitado(data) {
-            if (data.type === 'RECHAZO') {
-                mostrarNotificacion(data.motivo);
-                setTimeout(() => window.location.reload(), 3000);
+                    if (jugTarget.cartas[targetIndice].valor === est.cartaCentro.valor) {
+                        jugTarget.cartas.splice(targetIndice, 1);
+                        est.ventanaMatch = false;
+                        if (jugMatch.cartaEnMano) jugMatch.cartaEnMano = null;
+                        est.estadoTurno = 'ESPERANDO_CARTA_MATCH_RIVAL';
+                        est.poderData = { jugadorActivoMatchId: miIdJugador, targetIdRecepcionista: targetId };
+                    } else {
+                        if (est.mazo && est.mazo.length > 0) jugMatch.cartas.push(est.mazo.pop());
+                        est.ultimoCambio = {
+                            movimientos: [{ idJugador: jugMatch.id, indice: jugMatch.cartas.length - 1 }],
+                            mensaje: `¡${jugMatch.nombre} falló el descarte rival y recibió penalidad!`,
+                            timestamp: Date.now()
+                        };
+                    }
+                    return est;
+                });
                 return;
             }
-            if (data.type === 'SINCRO') {
-                estadoJuego = data.estado;
-                if (estadoJuego.fase === 'Lobby') actualizarLobbyUI();
-                else if ((estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'FinRondaMesa') && !pJuego.classList.contains('activa')) comenzarJuegoUI();
-                else if (estadoJuego.fase === 'Jugando' || estadoJuego.fase === 'Preparacion' || estadoJuego.fase === 'FinRondaMesa') renderizarMesaDinamica();
-                else if (estadoJuego.fase === 'Resultados') mostrarPantallaResultados();
+
+            if (!soyElDelTurno) return;
+
+            if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') {
+                const estadoAnterior = estadoJuego.estadoTurno;
+                estoyEspiandoLocalmente = true;
+                
+                const color = cartaInteractiva.dataset.color;
+                const valor = cartaInteractiva.dataset.valor;
+                cartaInteractiva.className = `minicarta carta-juego carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                cartaInteractiva.innerText = valor;
+                document.getElementById('indicador-turno').innerHTML = `<span style="color: var(--morado);">Espiando carta del rival... (3s)</span>`;
+
+                setTimeout(() => {
+                    estoyEspiandoLocalmente = false;
+                    ejecutarTransaccion(est => {
+                        if (estadoAnterior === 'PODER_ESPIAR_RIVAL') {
+                            avanzarTurnoEnEstado(est);
+                        } else {
+                            est.poderData.targetId = targetId;
+                            est.poderData.targetIndice = targetIndice;
+                            est.estadoTurno = 'PODER_SUP_DECIDIR';
+                        }
+                        return est;
+                    });
+                }, 3000);
+            } else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') {
+                ejecutarTransaccion(est => {
+                    let jugTurno = est.jugadores[est.turnoActual];
+                    let miIdx = est.poderData.miIndice;
+                    let targetJug = est.jugadores.find(j => j.id === targetId);
+                    if (targetJug && targetJug.cartas[targetIndice] && jugTurno.cartas[miIdx]) {
+                        const temp = jugTurno.cartas[miIdx];
+                        jugTurno.cartas[miIdx] = targetJug.cartas[targetIndice];
+                        targetJug.cartas[targetIndice] = temp;
+                        est.ultimoCambio = {
+                            movimientos: [{ idJugador: jugTurno.id, indice: miIdx }, { idJugador: targetJug.id, indice: targetIndice }],
+                            mensaje: `🔄 ${jugTurno.nombre} intercambió su carta #${miIdx + 1} con la #${targetIndice + 1} de ${targetJug.nombre}`,
+                            timestamp: Date.now()
+                        };
+                    }
+                    avanzarTurnoEnEstado(est);
+                    return est;
+                });
             }
+        };
+
+        // --- CLIC EN CARTAS PROPIAS ---
+        document.getElementById('mis-cartas-html').onclick = (e) => {
+            if (estoyEspiandoLocalmente || !estadoJuego) return;
+            const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
+            if (!cartaInteractiva) return; 
+            
+            const yo = obtenerJugadorLocal();
+            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
+            if (!yo) return;
+            const indice = parseInt(cartaInteractiva.dataset.indice);
+
+            // DAR CARTA TRAS MATCH RIVAL
+            if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL' && yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
+                ejecutarTransaccion(est => {
+                    let jDa = est.jugadores.find(j => j.id === est.poderData.jugadorActivoMatchId);
+                    let jRecibe = est.jugadores.find(j => j.id === est.poderData.targetIdRecepcionista);
+                    if (jDa && jRecibe && jDa.cartas[indice]) {
+                        const cTransferida = jDa.cartas.splice(indice, 1)[0];
+                        jRecibe.cartas.push(cTransferida);
+                        est.ultimoCambio = {
+                            movimientos: [{ idJugador: jRecibe.id, indice: jRecibe.cartas.length - 1 }],
+                            mensaje: `${jDa.nombre} le entregó una carta a ${jRecibe.nombre}`,
+                            timestamp: Date.now()
+                        };
+                        est.estadoTurno = 'NORMAL';
+                        est.poderData = {};
+                        if (est.fase === 'Jugando') {
+                            const idxMatch = est.jugadores.findIndex(j => j.id === jDa.id);
+                            est.turnoActual = (idxMatch + 1) % est.jugadores.length;
+                            let sig = est.jugadores[est.turnoActual];
+                            if ((est.rondaFinal && sig.id === est.cantoCaboId) || est.jugadores.some(j => j.cartas.length === 0)) {
+                                finalizarRondaEnEstado(est);
+                            }
+                        } else if (est.fase === 'Preparacion' && est.jugadores.some(j => j.cartas.length === 0)) {
+                            finalizarRondaEnEstado(est);
+                        }
+                    }
+                    return est;
+                });
+                return;
+            }
+
+            const soyElDelTurno = (turnoJugador.id === yo.id);
+            const estoyUsandoPoder = soyElDelTurno && estadoJuego.estadoTurno !== 'NORMAL';
+            
+            // MATCH PROPIO RÁPIDO
+            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles && estadoJuego.estadoTurno === 'NORMAL') {
+                ejecutarTransaccion(est => {
+                    if (!est.ventanaMatch) return est;
+                    let jugMatch = est.jugadores.find(j => j.id === miIdJugador);
+                    if (!jugMatch || !jugMatch.cartas[indice]) return est;
+
+                    if (jugMatch.cartas[indice].valor === est.cartaCentro.valor) {
+                        jugMatch.cartas.splice(indice, 1);
+                        if (est.rondaFinal) jugMatch.cartasVisibles = true;
+                        est.ventanaMatch = false;
+                        est.estadoTurno = 'NORMAL';
+                        if (jugMatch.cartaEnMano) jugMatch.cartaEnMano = null;
+
+                        if (est.fase === 'Jugando') {
+                            const idxMatch = est.jugadores.findIndex(j => j.id === miIdJugador);
+                            est.turnoActual = (idxMatch + 1) % est.jugadores.length;
+                            let sig = est.jugadores[est.turnoActual];
+                            if ((est.rondaFinal && sig.id === est.cantoCaboId) || est.jugadores.some(j => j.cartas.length === 0)) {
+                                finalizarRondaEnEstado(est);
+                            }
+                        } else if (est.fase === 'Preparacion' && est.jugadores.some(j => j.cartas.length === 0)) {
+                            finalizarRondaEnEstado(est);
+                        }
+                    } else {
+                        if (est.mazo && est.mazo.length > 0) jugMatch.cartas.push(est.mazo.pop());
+                        est.ultimoCambio = {
+                            movimientos: [{ idJugador: jugMatch.id, indice: jugMatch.cartas.length - 1 }],
+                            mensaje: `¡${jugMatch.nombre} falló el descarte y recibió penalidad!`,
+                            timestamp: Date.now()
+                        };
+                    }
+                    return est;
+                });
+                return; 
+            }
+
+            if (!soyElDelTurno) return; 
+            
+            if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') {
+                const estadoAnterior = estadoJuego.estadoTurno;
+                estoyEspiandoLocalmente = true;
+                
+                const color = cartaInteractiva.dataset.color;
+                const valor = cartaInteractiva.dataset.valor;
+                cartaInteractiva.className = `carta-juego mi-carta-interactiva carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
+                cartaInteractiva.innerText = valor;
+                document.getElementById('indicador-turno').innerHTML = `<span style="color: var(--morado);">Memorizando tu carta... (3s)</span>`;
+
+                setTimeout(() => {
+                    estoyEspiandoLocalmente = false;
+                    ejecutarTransaccion(est => {
+                        if (estadoAnterior === 'PODER_MIRAR_PROPIA') {
+                            avanzarTurnoEnEstado(est);
+                        } else {
+                            est.poderData.miIndice = indice;
+                            est.estadoTurno = 'PODER_SUP_RIVAL_ESPIAR';
+                        }
+                        return est;
+                    });
+                }, 3000);
+                return;
+            }
+
+            if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') {
+                ejecutarTransaccion(est => {
+                    est.poderData.miIndice = indice;
+                    est.estadoTurno = 'PODER_INT_RIVAL';
+                    return est;
+                });
+                return;
+            }
+
+            if (yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') {
+                ejecutarTransaccion(est => {
+                    let jugTurno = est.jugadores[est.turnoActual];
+                    const cartaReemplazada = jugTurno.cartas[indice];
+                    jugTurno.cartas[indice] = jugTurno.cartaEnMano;
+                    est.cartaCentro = cartaReemplazada;
+                    est.ventanaMatch = true;
+                    jugTurno.cartaEnMano = null;
+                    est.ultimoCambio = {
+                        movimientos: [{ idJugador: jugTurno.id, indice: indice }],
+                        mensaje: `${jugTurno.nombre} reemplazó su carta #${indice + 1}`,
+                        timestamp: Date.now()
+                    };
+                    avanzarTurnoEnEstado(est);
+                    return est;
+                });
+            }
+        };
+
+        // --- RENDERIZADO DE INTERFAZ ---
+        function tieneDestelloCambio(idJugador, indiceCarta) {
+            if (!estadoJuego || !estadoJuego.ultimoCambio) return false;
+            if (Date.now() - estadoJuego.ultimoCambio.timestamp > 5000) return false;
+            return (estadoJuego.ultimoCambio.movimientos || []).some(m => m.idJugador === idJugador && m.indice === indiceCarta);
         }
 
         function actualizarLobbyUI() {
             const divLista = document.getElementById('lista-jugadores');
             divLista.innerHTML = '';
             estadoJuego.jugadores.forEach(j => {
-                const est = j.listo ? '<span class="estado-listo">Listo</span>' : '<span class="estado-espera">Pensando...</span>';
+                const est = j.listo ? '<span class="estado-listo">Listo</span>' : '<span class="estado-espera">Esperando...</span>';
                 divLista.innerHTML += `<div class="jugador-item"><span>${j.nombre}</span> ${est}</div>`;
             });
-            document.getElementById('btn-listo').disabled = false;
-            document.getElementById('btn-listo').innerText = "¡Estoy Listo!";
-        }
-
-        function comenzarJuegoUI() {
-            cambiarPantalla(pJuego);
-            renderizarMesaDinamica();
+            const yo = obtenerJugadorLocal();
+            const btnListo = document.getElementById('btn-listo');
+            if (yo && yo.listo) {
+                btnListo.disabled = true;
+                btnListo.innerText = "Esperando al resto...";
+            } else {
+                btnListo.disabled = false;
+                btnListo.innerText = "¡Estoy Listo!";
+            }
         }
 
         function mostrarPantallaResultados() {
@@ -706,156 +979,120 @@
             
             if (estadoJuego.partidaTerminada) {
                 titulo.innerText = "¡PARTIDA TERMINADA!";
-                sub.innerText = "Alguien alcanzó o superó los 100 puntos";
+                sub.innerText = "Límite de 100 puntos alcanzado";
                 btnSiguiente.style.display = 'none';
                 
                 let jugadoresOrdenados = [...estadoJuego.jugadores].sort((a, b) => a.puntajeTotal - b.puntajeTotal);
-                
                 jugadoresOrdenados.forEach((j, i) => {
                     let corona = i === 0 ? "🏆 GANADOR: " : "";
-                    let calavera = j.puntajeTotal >= 100 ? " <span style='color: var(--rojo-carta); font-weight: bold;'>💀 PERDIÓ</span>" : "";
-                    divRes.innerHTML += `<div style="font-size: 18px; padding: 12px 0; border-bottom: 1px solid #333;">
-                        ${corona}<strong>${j.nombre}</strong>: <span style="color: var(--accent-color); font-weight:bold;">${j.puntajeTotal} pts</span> ${calavera}
-                        <div style="font-size: 12px; color: #888;">(Última ronda: +${j.puntajeRonda} pts)</div>
+                    let calavera = j.puntajeTotal >= 100 ? " <span style='color: var(--rojo-carta);'>💀 PERDIÓ</span>" : "";
+                    divRes.innerHTML += `<div style="padding: 12px 0; border-bottom: 1px solid #262c36;">
+                        <div>${corona}<strong>${j.nombre}</strong>: <span style="color: var(--accent-color); font-weight:800;">${j.puntajeTotal} pts</span> ${calavera}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Última ronda: +${j.puntajeRonda} pts</div>
                     </div>`;
                 });
             } else {
-                titulo.innerText = "Fin de la Ronda " + estadoJuego.rondaActual;
-                sub.innerText = "Acumulando puntos...";
+                titulo.innerText = "Ronda " + estadoJuego.rondaActual + " Finalizada";
+                sub.innerText = "Tabla general de posiciones";
                 btnSiguiente.style.display = 'block';
                 
-                if (!esAnfitrion) {
+                if (!esAnfitrionLocal()) {
                     btnSiguiente.disabled = true;
                     btnSiguiente.innerText = "Esperando al anfitrión...";
-                    btnSiguiente.style.backgroundColor = '#444';
                 } else {
                     btnSiguiente.disabled = false;
                     btnSiguiente.innerText = "Jugar Siguiente Ronda";
-                    btnSiguiente.style.backgroundColor = '#2ecc71';
                 }
 
                 let jugadoresOrdenados = [...estadoJuego.jugadores].sort((a, b) => a.puntajeTotal - b.puntajeTotal);
-                
                 jugadoresOrdenados.forEach((j) => {
-                    let esCabo = j.id === estadoJuego.cantoCaboId ? " <span style='color: #8e44ad;'>📢 (Cantó Cabo)</span>" : "";
-                    divRes.innerHTML += `<div style="font-size: 18px; padding: 12px 0; border-bottom: 1px solid #333;">
-                        <strong>${j.nombre}</strong>: <span style="color: var(--accent-color); font-weight:bold;">${j.puntajeTotal} pts totales</span>
-                        <div style="font-size: 14px; color: #aaa;">Esta ronda: +${j.puntajeRonda} pts ${esCabo}</div>
+                    let esCabo = j.id === estadoJuego.cantoCaboId ? " <span style='color: var(--morado); font-size:12px;'>📢 (Cantó Cabo)</span>" : "";
+                    divRes.innerHTML += `<div style="padding: 12px 0; border-bottom: 1px solid #262c36;">
+                        <div><strong>${j.nombre}</strong>: <span style="color: var(--accent-color); font-weight:800;">${j.puntajeTotal} pts</span></div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Esta ronda: +${j.puntajeRonda} pts ${esCabo}</div>
                     </div>`;
                 });
             }
-        }
-
-        function obtenerJugadorLocal() {
-            return estadoJuego.jugadores.find(j => j.id === miIdPeer) || estadoJuego.jugadores.find(j => j.nombre === miNombre);
         }
 
         function renderizarMesaDinamica() {
             const yo = obtenerJugadorLocal();
             if (!yo) return; 
             const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            const esMiTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
+            const esMiTurno = (turnoJugador && turnoJugador.id === yo.id);
 
-            // CONTROL DE BOTONES Y VISIBILIDAD INICIAL
-            const btnVerCartas = document.getElementById('btn-ver-cartas');
-            if (estadoJuego.fase === 'Preparacion' && !yo.vioCartas) btnVerCartas.style.display = 'block';
-            else btnVerCartas.style.display = 'none';
+            document.getElementById('btn-ver-cartas').style.display = (estadoJuego.fase === 'Preparacion' && !yo.vioCartas) ? 'block' : 'none';
+            document.getElementById('btn-cantar-cabo').style.display = (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') ? 'block' : 'none';
+            document.getElementById('btn-ver-puntajes').style.display = (estadoJuego.fase === 'FinRondaMesa' && esAnfitrionLocal()) ? 'block' : 'none';
 
-            const btnCabo = document.getElementById('btn-cantar-cabo');
-            if (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && !estadoJuego.rondaFinal && estadoJuego.fase === 'Jugando') {
-                btnCabo.style.display = 'block';
-            } else {
-                btnCabo.style.display = 'none';
-            }
-
-            const btnVerPuntajes = document.getElementById('btn-ver-puntajes');
-            if (estadoJuego.fase === 'FinRondaMesa' && esAnfitrion) {
-                btnVerPuntajes.style.display = 'block';
-            } else {
-                btnVerPuntajes.style.display = 'none';
-            }
-
-            const alertaMatch = document.getElementById('alerta-match');
-            if (estadoJuego.ventanaMatch && estadoJuego.fase !== 'FinRondaMesa') alertaMatch.style.display = 'block';
-            else alertaMatch.style.display = 'none';
-
+            // 1. Indicador Superior
             const ind = document.getElementById('indicador-turno');
-            
-            // Textos descriptivos
+            let htmlTurno = '';
+
             if (estadoJuego.fase === 'FinRondaMesa') {
-                ind.innerText = "¡RONDA TERMINADA! Revisen las cartas en la mesa."; 
-                ind.style.color = "#2ecc71";
+                htmlTurno = `<span style="color: var(--verde);">¡Ronda terminada! Cartas reveladas en mesa.</span>`;
             } else if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL') {
                 if (yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
-                    ind.innerText = "¡MATCH RIVAL EXITOSO! TOCA UNA CARTA TUYA PARA DÁRSELA";
-                    ind.style.color = "#3498db";
+                    htmlTurno = `<span style="color: var(--azul);">¡Descarte rival exitoso! Toca una carta tuya para entregársela</span>`;
                 } else {
                     let jDa = estadoJuego.jugadores.find(j => j.id === estadoJuego.poderData.jugadorActivoMatchId);
-                    ind.innerText = `ESPERANDO QUE ${jDa ? jDa.nombre : 'EL JUGADOR'} ENTREGUE UNA CARTA...`;
-                    ind.style.color = "#888";
+                    htmlTurno = `<span style="color: var(--text-muted);">Esperando que ${jDa ? jDa.nombre : 'el jugador'} entregue una carta...</span>`;
                 }
             } else if (estadoJuego.fase === 'Preparacion') {
-                if (!yo.vioCartas) { ind.innerText = "TOCA EL BOTÓN PARA VER TUS CARTAS"; ind.style.color = "#f39c12"; } 
-                else { ind.innerText = "ESPERANDO A LOS DEMÁS JUGADORES..."; ind.style.color = "#888"; }
+                htmlTurno = !yo.vioCartas 
+                    ? `<span style="color: var(--accent-color);">Toca el botón inferior para memorizar tus 2 cartas</span>`
+                    : `<span style="color: var(--text-muted);">Esperando a que los demás miren sus cartas...</span>`;
             } else if (esMiTurno) {
                 if (estadoJuego.estadoTurno === 'PODER_OPCIONAL') {
-                    ind.innerHTML = `
-                        <div style="margin-bottom: 8px;">¿Quieres usar el poder de la carta?</div>
-                        <button id="btn-poder-si" style="background:#3498db; border:none; color:white; padding:8px 16px; border-radius:5px; margin-right:8px; cursor:pointer; font-weight:bold;">SÍ, USAR</button>
-                        <button id="btn-poder-no" style="background:#95a5a6; border:none; color:white; padding:8px 16px; border-radius:5px; cursor:pointer; font-weight:bold;">NO, PASAR</button>
-                    `;
-                    ind.style.color = "#fff";
+                    htmlTurno = `
+                        <div>¿Quieres usar el poder de la carta descartada?</div>
+                        <div class="botones-decision">
+                            <button id="btn-poder-si" class="btn-mini" style="background:var(--azul); color:white;">SÍ, USAR</button>
+                            <button id="btn-poder-no" class="btn-mini btn-secundario">NO, PASAR</button>
+                        </div>`;
                 }
-                else if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') { ind.innerText = "¡PODER (7/8)! TOCA UNA CARTA TUYA PARA VERLA"; ind.style.color = "#9b59b6"; }
-                else if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL') { ind.innerText = "¡PODER (9/10)! TOCA LA CARTA DE UN RIVAL PARA VERLA"; ind.style.color = "#9b59b6"; }
-                else if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') { ind.innerText = "INTERCAMBIO (J/Q): TOCA LA CARTA TUYA QUE VAS A DAR"; ind.style.color = "#3498db"; }
-                else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') { ind.innerText = "INTERCAMBIO (J/Q): TOCA LA CARTA DEL RIVAL PARA ROBARSELA"; ind.style.color = "#3498db"; }
-                else if (estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') { ind.innerText = "REY NEGRO (1/3): TOCA TU CARTA PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
-                else if (estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') { ind.innerText = "REY NEGRO (2/3): TOCA LA CARTA DEL RIVAL PARA ESPIARLA"; ind.style.color = "#e74c3c"; }
+                else if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA') htmlTurno = `<span style="color: var(--morado);">PODER (7/8): Toca una carta tuya para verla</span>`;
+                else if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL') htmlTurno = `<span style="color: var(--morado);">PODER (9/10): Toca una carta de un rival para espiarla</span>`;
+                else if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') htmlTurno = `<span style="color: var(--azul);">INTERCAMBIO (J/Q): 1° Toca la carta tuya que vas a entregar</span>`;
+                else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') htmlTurno = `<span style="color: var(--azul);">INTERCAMBIO (J/Q): 2° Toca la carta del rival que quieres robar</span>`;
+                else if (estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') htmlTurno = `<span style="color: var(--rojo-carta);">REY NEGRO (1/3): Toca una carta tuya para mirarla</span>`;
+                else if (estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') htmlTurno = `<span style="color: var(--rojo-carta);">REY NEGRO (2/3): Toca una carta del rival para espiarla</span>`;
                 else if (estadoJuego.estadoTurno === 'PODER_SUP_DECIDIR') {
-                    ind.innerHTML = `
-                        <div style="margin-bottom: 8px;">¿Quieres intercambiar las dos cartas que viste?</div>
-                        <button id="btn-sup-si" style="background:#2ecc71; border:none; color:white; padding:8px 16px; border-radius:5px; margin-right:8px; cursor:pointer; font-weight:bold;">SÍ, CAMBIAR</button>
-                        <button id="btn-sup-no" style="background:#e74c3c; border:none; color:white; padding:8px 16px; border-radius:5px; cursor:pointer; font-weight:bold;">NO</button>
-                    `;
-                    ind.style.color = "#fff";
+                    htmlTurno = `
+                        <div>¿Intercambiar las dos cartas que espiaste?</div>
+                        <div class="botones-decision">
+                            <button id="btn-sup-si" class="btn-mini" style="background:var(--verde); color:#000;">SÍ, CAMBIAR</button>
+                            <button id="btn-sup-no" class="btn-mini" style="background:var(--rojo-carta); color:white;">NO</button>
+                        </div>`;
                 }
-                else if (yo.cartaEnMano) {
-                    ind.innerText = "TOCA UNA CARTA TUYA PARA CAMBIARLA, O EL CENTRO PARA DESCARTAR";
-                    ind.style.color = "#f39c12"; 
-                } else {
-                    ind.innerText = "¡ES TU TURNO! TOCA EL MAZO O EL CENTRO PARA ROBAR";
-                    ind.style.color = "#2ecc71";
-                }
+                else if (yo.cartaEnMano) htmlTurno = `<span style="color: var(--accent-color);">Toca una carta tuya para cambiarla, o el Pozo para descartar</span>`;
+                else htmlTurno = `<span style="color: var(--verde);">¡Es tu turno! Toca el Mazo o el Pozo para robar</span>`;
             } else {
-                ind.innerText = `Turno de: ${turnoJugador.nombre}`;
-                ind.style.color = "#f1c40f";
+                htmlTurno = `<span style="color: var(--accent-color);">Turno de: ${turnoJugador ? turnoJugador.nombre : ''}</span>`;
             }
 
             if (estadoJuego.rondaFinal && estadoJuego.fase !== 'FinRondaMesa') {
-                ind.innerHTML = `<div style="color: #e74c3c; font-weight: 900; font-size: 18px; margin-bottom: 5px; text-shadow: 0 0 5px #e74c3c;">¡ÚLTIMA RONDA!</div>` + ind.innerHTML;
+                htmlTurno = `<div style="color: var(--rojo-carta); font-size: 13px; font-weight: 900; letter-spacing: 1px;">⚠️ ¡ÚLTIMA RONDA!</div>` + htmlTurno;
             }
+            ind.innerHTML = htmlTurno;
 
-            // 2. Centro
+            // 2. Centro (Pozo)
             const divCentro = document.getElementById('carta-centro');
             if (estadoJuego.cartaCentro && estadoJuego.cartaCentro.valor !== '') {
-                let claseMatch = (estadoJuego.ventanaMatch && estadoJuego.estadoTurno !== 'ESPERANDO') ? 'carta-match' : '';
-                divCentro.className = `carta-juego carta-visible ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'} ${claseMatch}`;
+                divCentro.className = `carta-juego carta-visible ${estadoJuego.cartaCentro.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 divCentro.innerText = estadoJuego.cartaCentro.valor;
-
-                if (esMiTurno && yo.cartaEnMano) divCentro.style.setProperty('border', '3px dashed #2ecc71', 'important');
-                else divCentro.style.removeProperty('border');
-                
-                divCentro.style.cursor = (esMiTurno && yo.cartaEnMano) ? "pointer" : (esMiTurno && !yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL' && estadoJuego.fase === 'Jugando') ? "pointer" : "default";
+                if (esMiTurno && yo.cartaEnMano) divCentro.classList.add('seleccionable-normal');
+                divCentro.style.cursor = (esMiTurno && (yo.cartaEnMano || (estadoJuego.estadoTurno === 'NORMAL' && estadoJuego.fase === 'Jugando'))) ? "pointer" : "default";
             } else {
                 divCentro.innerText = '';
-                divCentro.className = `carta-juego`;
-                divCentro.style.border = "2px dashed #444";
-                divCentro.classList.remove('carta-match');
+                divCentro.className = 'carta-juego';
+                divCentro.style.background = 'transparent';
+                divCentro.style.border = '2px dashed #30363d';
             }
 
             // 3. Mazo
             const mazo = document.getElementById('mazo-robar');
+            document.getElementById('contador-mazo').innerText = `Mazo (${estadoJuego.mazo ? estadoJuego.mazo.length : 0})`;
             if (esMiTurno && yo.cartaEnMano) {
                 mazo.className = `carta-juego carta-visible ${yo.cartaEnMano.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
                 mazo.innerText = yo.cartaEnMano.valor;
@@ -870,22 +1107,26 @@
             const divOponentes = document.getElementById('zona-oponentes');
             divOponentes.innerHTML = '';
             estadoJuego.jugadores.forEach((j, jugIdx) => {
-                if (j.id !== yo.id && j.nombre !== yo.nombre) {
+                if (j.id !== yo.id) {
+                    const esTurnoRival = (turnoJugador && turnoJugador.id === j.id);
                     let htmlCartas = j.cartas.map((c, index) => {
-                        let est = '';
+                        let clasesExtra = '';
                         if (esMiTurno && !j.cartasVisibles && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR')) {
-                            est = 'border: 2px dashed #9b59b6 !important; cursor: pointer;';
+                            clasesExtra += ' seleccionable-poder';
+                        }
+                        if (tieneDestelloCambio(j.id, index)) {
+                            clasesExtra += ' carta-destacada-cambio';
                         }
                         
                         if (j.cartasVisibles) {
-                            return `<div class="minicarta carta-juego carta-visible ${c.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}" style="${est}">${c.valor}</div>`;
+                            return `<div class="minicarta carta-juego carta-visible ${c.color === 'Rojo' ? 'carta-roja' : 'carta-negra'} ${clasesExtra}">${c.valor}</div>`;
                         } else {
-                            return `<div class="minicarta carta-juego carta-oculta carta-oponente-interactiva" data-id="${j.id}" data-jug-index="${jugIdx}" data-indice="${index}" data-valor="${c.valor}" data-color="${c.color}" style="${est}">?</div>`;
+                            return `<div class="minicarta carta-juego carta-oculta carta-oponente-interactiva ${clasesExtra}" data-id="${j.id}" data-jug-index="${jugIdx}" data-indice="${index}" data-valor="${c.valor}" data-color="${c.color}">?</div>`;
                         }
                     }).join('');
                     
                     divOponentes.innerHTML += `
-                        <div class="oponente-bloque">
+                        <div class="oponente-bloque ${esTurnoRival ? 'oponente-activo' : ''}">
                             <div class="oponente-nombre">${j.nombre}</div>
                             <div class="grilla-oponente">${htmlCartas}</div>
                         </div>
@@ -897,242 +1138,33 @@
             const miGrilla = document.getElementById('mis-cartas-html');
             miGrilla.innerHTML = '';
             yo.cartas.forEach((carta, index) => {
-                let estiloExtra = '';
+                let clasesExtra = '';
                 
-                if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') estiloExtra = 'border: 3px dashed #f39c12 !important; cursor: pointer;';
+                if (esMiTurno && yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') clasesExtra += ' seleccionable-normal';
                 if (esMiTurno && !yo.cartasVisibles && (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_INT_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA')) {
-                    estiloExtra = 'border: 3px dashed #9b59b6 !important; cursor: pointer;';
+                    clasesExtra += ' seleccionable-poder';
                 }
-                
-                const estoyUsandoPoder = esMiTurno && estadoJuego.estadoTurno !== 'NORMAL';
-                if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles && estadoJuego.fase !== 'FinRondaMesa') {
-                    estiloExtra = 'border: 3px dashed #3498db !important; cursor: pointer; box-shadow: 0 0 10px #3498db;';
+                if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL' && yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
+                    clasesExtra += ' seleccionable-normal';
                 }
 
-                if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL' && yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
-                    estiloExtra = 'border: 3px dashed #3498db !important; cursor: pointer; animation: titilar 1s infinite;';
-                }
+                const fueCambiada = tieneDestelloCambio(yo.id, index);
+                if (fueCambiada) clasesExtra += ' carta-destacada-cambio';
+                const badgeHTML = fueCambiada ? `<span class="badge-cambio">¡CAMBIO!</span>` : '';
                 
                 if (yo.cartasVisibles) {
                     miGrilla.innerHTML += `
-                        <div class="carta-juego carta-visible ${carta.color === 'Rojo' ? 'carta-roja' : 'carta-negra'} mi-carta-interactiva" 
-                             id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
-                             style="${estiloExtra}">${carta.valor}</div>
+                        <div class="carta-juego carta-visible ${carta.color === 'Rojo' ? 'carta-roja' : 'carta-negra'} mi-carta-interactiva ${clasesExtra}" 
+                             id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}">${carta.valor}${badgeHTML}</div>
                     `;
                 } else {
                     miGrilla.innerHTML += `
-                        <div class="carta-juego carta-oculta mi-carta-interactiva" 
-                             id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}"
-                             style="${estiloExtra}">?</div>
+                        <div class="carta-juego carta-oculta mi-carta-interactiva ${clasesExtra}" 
+                             id="mi-carta-${index}" data-indice="${index}" data-valor="${carta.valor}" data-color="${carta.color}">?${badgeHTML}</div>
                     `;
                 }
             });
         }
-
-        // --- MANEJO DE BOTONES DINÁMICOS ---
-        document.getElementById('indicador-turno').addEventListener('click', (e) => {
-            if (e.target.id === 'btn-sup-si') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'DECISION_SUP', datos: { cambiar: true } });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'DECISION_SUP', datos: { cambiar: true } } });
-            } else if (e.target.id === 'btn-sup-no') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'DECISION_SUP', datos: { cambiar: false } });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'DECISION_SUP', datos: { cambiar: false } } });
-            }
-            
-            if (e.target.id === 'btn-poder-si') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DECISION_PODER_OPCIONAL', { usarPoder: true });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DECISION_PODER_OPCIONAL', datosExtra: { usarPoder: true } });
-            } else if (e.target.id === 'btn-poder-no') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DECISION_PODER_OPCIONAL', { usarPoder: false });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DECISION_PODER_OPCIONAL', datosExtra: { usarPoder: false } });
-            }
-        });
-
-        // --- INTERACCIONES BÁSICAS ---
-        document.getElementById('btn-ver-cartas').addEventListener('click', () => {
-            const btn = document.getElementById('btn-ver-cartas');
-            btn.style.display = 'none';
-            const cIzq = document.getElementById('mi-carta-2');
-            const cDer = document.getElementById('mi-carta-3');
-            if(!cIzq || !cDer) return;
-            
-            const revelar = (el) => { 
-                el.className = `carta-juego mi-carta-interactiva carta-visible ${el.dataset.color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`; 
-                el.innerText = el.dataset.valor; 
-            };
-            const tapar = (el) => { 
-                el.className = 'carta-juego carta-oculta mi-carta-interactiva'; 
-                el.innerText = '?'; 
-            };
-            
-            revelar(cIzq); revelar(cDer);
-            setTimeout(() => { 
-                tapar(cIzq); tapar(cDer); 
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'VIO_CARTAS');
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'VIO_CARTAS' });
-            }, 3000);
-        });
-
-        document.getElementById('btn-cantar-cabo').addEventListener('click', () => {
-            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CANTAR_CABO');
-            else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CANTAR_CABO' });
-        });
-
-        document.getElementById('mazo-robar').addEventListener('click', () => {
-            if (estadoJuego.fase !== 'Jugando') return;
-            const yo = obtenerJugadorLocal();
-            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre) || yo.cartaEnMano || estadoJuego.estadoTurno !== 'NORMAL') return;
-            if (esAnfitrion) procesarAccionLocal(miIdPeer, 'ROBAR_MAZO');
-            else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'ROBAR_MAZO' });
-        });
-
-        document.getElementById('carta-centro').addEventListener('click', () => {
-            if (estadoJuego.fase !== 'Jugando') return;
-            const yo = obtenerJugadorLocal();
-            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
-            
-            if (yo.cartaEnMano) {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DESCARTAR');
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DESCARTAR' });
-            } 
-            else if (estadoJuego.estadoTurno === 'NORMAL' && estadoJuego.cartaCentro && estadoJuego.cartaCentro.valor !== '') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'ROBAR_CENTRO');
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'ROBAR_CENTRO' });
-            }
-        });
-
-        // --- CLIC EN CARTAS DE RIVALES ---
-        document.getElementById('zona-oponentes').addEventListener('click', (e) => {
-            const cartaInteractiva = e.target.closest('.carta-oponente-interactiva');
-            if (!cartaInteractiva) return;
-            
-            const yo = obtenerJugadorLocal();
-            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            const targetId = cartaInteractiva.dataset.id;
-            const targetJugIndice = parseInt(cartaInteractiva.dataset.jugIndex);
-            const targetIndice = parseInt(cartaInteractiva.dataset.indice);
-
-            // MATCH RIVAL (Fuera de tu turno o en tu turno sin usar poder)
-            const soyElDelTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
-            const estoyApuntandoPoder = soyElDelTurno && (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_INT_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR');
-
-            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyApuntandoPoder && !yo.cartasVisibles) {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'MATCH_RIVAL', { idJugadorQueHaceMatch: yo.id, targetId: targetId, targetIndice: targetIndice });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'MATCH_RIVAL', datosExtra: { idJugadorQueHaceMatch: yo.id, targetId: targetId, targetIndice: targetIndice } });
-                return;
-            }
-
-            // Normal power click
-            if (!yo || (turnoJugador.id !== yo.id && turnoJugador.nombre !== yo.nombre)) return;
-
-            if (estadoJuego.estadoTurno === 'PODER_ESPIAR_RIVAL' || estadoJuego.estadoTurno === 'PODER_SUP_RIVAL_ESPIAR') {
-                const estadoAnterior = estadoJuego.estadoTurno;
-                estadoJuego.estadoTurno = 'ESPERANDO';
-                
-                const color = cartaInteractiva.dataset.color;
-                const valor = cartaInteractiva.dataset.valor;
-                
-                cartaInteractiva.className = `minicarta carta-juego carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-                cartaInteractiva.innerText = valor;
-
-                let tiempo = 3;
-                const ind = document.getElementById('indicador-turno');
-                ind.innerText = `Espiando carta del rival... (${tiempo}s)`;
-                const conteo = setInterval(() => { tiempo--; if(tiempo > 0) ind.innerText = `Espiando carta del rival... (${tiempo}s)`; }, 1000);
-
-                setTimeout(() => {
-                    clearInterval(conteo);
-                    cartaInteractiva.className = 'minicarta carta-juego carta-oculta carta-oponente-interactiva';
-                    cartaInteractiva.innerText = '?';
-                    
-                    if (estadoAnterior === 'PODER_ESPIAR_RIVAL') {
-                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
-                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
-                    } else {
-                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_SUP_RIVAL', datos: { targetId, targetJugIndice, targetIndice } });
-                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_SUP_RIVAL', datos: { targetId, targetJugIndice, targetIndice } } });
-                    }
-                }, 3000);
-            } 
-            else if (estadoJuego.estadoTurno === 'PODER_INT_RIVAL') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_INT_RIVAL', datos: { targetId, targetJugIndice, targetIndice } });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_INT_RIVAL', datos: { targetId, targetJugIndice, targetIndice } } });
-            }
-        });
-
-        // --- CLIC EN CARTAS PROPIAS ---
-        document.getElementById('mis-cartas-html').addEventListener('click', (e) => {
-            const cartaInteractiva = e.target.closest('.mi-carta-interactiva');
-            if (!cartaInteractiva) return; 
-            
-            const yo = obtenerJugadorLocal();
-            const turnoJugador = estadoJuego.jugadores[estadoJuego.turnoActual];
-            const indice = parseInt(cartaInteractiva.dataset.indice);
-
-            // DAR CARTA AL RIVAL (Después de un Match Rival)
-            if (estadoJuego.estadoTurno === 'ESPERANDO_CARTA_MATCH_RIVAL' && yo.id === estadoJuego.poderData.jugadorActivoMatchId) {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'DAR_CARTA_MATCH', { indiceCarta: indice });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'DAR_CARTA_MATCH', datosExtra: { indiceCarta: indice } });
-                return;
-            }
-
-            const soyElDelTurno = (turnoJugador.id === yo.id || turnoJugador.nombre === yo.nombre);
-            const estoyUsandoPoder = soyElDelTurno && estadoJuego.estadoTurno !== 'NORMAL';
-            
-            // MATCH PROPIO RÁPIDO
-            if (estadoJuego.ventanaMatch && !yo.cartaEnMano && !estoyUsandoPoder && !yo.cartasVisibles && estadoJuego.estadoTurno !== 'ESPERANDO_CARTA_MATCH_RIVAL') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'MATCH_RAPIDO', { idJugador: yo.id, indiceCarta: indice });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'MATCH_RAPIDO', datosExtra: { idJugador: yo.id, indiceCarta: indice } });
-                return; 
-            }
-
-            if (!yo || !soyElDelTurno) return; 
-            
-            if (estadoJuego.estadoTurno === 'PODER_MIRAR_PROPIA' || estadoJuego.estadoTurno === 'PODER_SUP_PROPIA') {
-                const estadoAnterior = estadoJuego.estadoTurno;
-                estadoJuego.estadoTurno = 'ESPERANDO';
-                
-                const color = cartaInteractiva.dataset.color;
-                const valor = cartaInteractiva.dataset.valor;
-                
-                cartaInteractiva.className = `carta-juego mi-carta-interactiva carta-visible ${color === 'Rojo' ? 'carta-roja' : 'carta-negra'}`;
-                cartaInteractiva.innerText = valor;
-
-                let tiempo = 3;
-                const ind = document.getElementById('indicador-turno');
-                ind.innerText = `Memorizando tu carta... (${tiempo}s)`;
-                
-                const conteo = setInterval(() => { tiempo--; if(tiempo > 0) ind.innerText = `Memorizando tu carta... (${tiempo}s)`; }, 1000);
-
-                setTimeout(() => {
-                    clearInterval(conteo);
-                    cartaInteractiva.className = 'carta-juego carta-oculta mi-carta-interactiva';
-                    cartaInteractiva.innerText = '?';
-
-                    if (estadoAnterior === 'PODER_MIRAR_PROPIA') {
-                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'FIN_TURNO');
-                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'FIN_TURNO' });
-                    } else {
-                        if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_SUP_PROPIA', datos: { indice } });
-                        else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_SUP_PROPIA', datos: { indice } } });
-                    }
-                }, 3000);
-                return;
-            }
-
-            if (estadoJuego.estadoTurno === 'PODER_INT_PROPIA') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'EJECUTAR_PODER', { tipo: 'SELECCION_INT_PROPIA', datos: { indice } });
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'EJECUTAR_PODER', datosExtra: { tipo: 'SELECCION_INT_PROPIA', datos: { indice } } });
-                return;
-            }
-
-            if (yo.cartaEnMano && estadoJuego.estadoTurno === 'NORMAL') {
-                if (esAnfitrion) procesarAccionLocal(miIdPeer, 'CAMBIAR', indice);
-                else conexionAlAnfitrion.send({ type: 'ACCION', accion: 'CAMBIAR', datosExtra: indice });
-            }
-        });
     </script>
 </body>
 </html>
